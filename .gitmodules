@@ -1,0 +1,3 @@
+[submodule "control-systems"]
+	path = control-systems
+	url = git@github.com:tum-phoenix/control-systems.git
