@@ -7,7 +7,10 @@
 
 
 class trajectory_tracking_controller {
-
+public:
+    float cur_v=0;
+    float cur_angle_f=0;
+    float cur_angle_r=0;
 };
 
 

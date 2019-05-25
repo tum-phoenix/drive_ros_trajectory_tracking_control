@@ -1,0 +1,11 @@
+
+<launch>
+    <arg name="driving_line_topic" default="/driving_line"/>
+    <arg name="uavcan_topic" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
+    <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>
+    <arg name="uavcan_egomotion" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
+
+
+    <arg name="output" default="screen"/>
+    <node name="trajectory_tracking_controller" pkg="drive_ros_trajectory_tracking_controller" type="trajectory_tracking_controller_node" respawn="false" output="$(arg output)">
+</launch>

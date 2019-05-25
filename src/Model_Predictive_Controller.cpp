@@ -11,12 +11,29 @@ extern "C"{
 #include "andromeda.h"
 }
 
-Model_Predictive_Controller::Model_Predictive_Controller() {}
+Model_Predictive_Controller::Model_Predictive_Controller(ros::NodeHandle nh) {
+    trajectory_meta_sub_ = nh_.subscribe("meta_in", 10, &Model_Predictive_Controller::blink_check, this);
+    ego_motion = nh.subscribe("")
+    trajectory=nh.subscribe("",1,Model_Predictive_Controller::control_values)//street_environment::Trajectory??
+}
 
 Model_Predictive_Controller::~Model_Predictive_Controller() {}
 
+void Model_Predictive_Controller::blink_check(const drive_ros_msgs::TrajectoryMetaInputConstPtr &msg) {
+    trajectory_tracking_controller::blink_check(msg);
+    //vMax = msg->max_speed;
+    //drivingCommand = msg->control_metadata;
+}
 
-Model_Predictive_Controller::control_values(){
+void Model_Predictive_Controller::set_current_egomotion(const drieve_teensy_main::5009.DriveState.uavcan &msg) {
+    trajectory_tracking_controller::(msg);
+    //cur_v=msg.v;
+    //cur_angle_f=msg.steer_f;
+    //cur_angle_r=msg.steer_r;
+}
+
+
+void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLineConstPtr &msg){
         int delay =  config().get<int>("stagePrediction",0); //wo bekommen wir die kacke her? Step length
         if(delay < 0 || delay >= HORIZON_LEN){
             logger.error("invalid stagePrediction")<<delay;
@@ -56,8 +73,8 @@ Model_Predictive_Controller::control_values(){
         //car state
         currentCarState[0] = 0;
         currentCarState[1] = 0;
-        currentCarState[2] = car->steeringFront(); //car input? aus LMS? -> ros
-        currentCarState[3] = car->steeringRear();
+        currentCarState[2] = cur_angle_f; //car input? aus LMS? -> ros
+        currentCarState[3] = cur_angle_r;
 
         q_diag[0] = config().get<double>("penalty_y",10);   //config -> ros parameter?
         q_diag[1] = config().get<double>("penalty_phi",10);
@@ -103,7 +120,54 @@ Model_Predictive_Controller::control_values(){
         state.steering_rear = car->steeringRear()+u_2_star[delay];
         state.targetSpeed = v_star[delay];
 
+        drive_ros_uavcan::phoenix_msgs__NucDriveCommand driveCmdMsg;
+        driveCmdMsg.phi_f = -kappa*understeerFactor;
+        driveCmdMsg.phi_r = -kappa*understeerFactor;
+
+        ROS_INFO_NAMED(stream_name_, "Steering front = %.1f[deg]", driveCmdMsg.phi_f * 180.f / M_PI);
+        ROS_INFO_NAMED(stream_name_, "Steering rear  = %.1f[deg]", driveCmdMsg.phi_r * 180.f / M_PI);
+
         state.targetDistance = 1; //TODO dont think that we even need it
         logger.timeEnd("mikMPC");
 
+}
+
+drive_ros_uavcan::phoenix_msgs__NucDriveCommand::_blink_com_type Model_Predictive_Controller::blink(){
+
+    drive_ros_uavcan::phoenix_msgs__NucDriveCommand::_blink_com_type blink_com = drive_ros_uavcan::phoenix_msgs__NucDriveCommand::NO_BLINK;
+    switch (drivingCommand) {
+        case (drive_ros_msgs::TrajectoryMetaInput::STANDARD):
+            // nothing to do
+            break;
+        case (drive_ros_msgs::TrajectoryMetaInput::SWITCH_LEFT):
+            // shift lane distance to the left
+            laneChangeDistance = laneWidth;
+            blink_com = drive_ros_uavcan::phoenix_msgs__NucDriveCommand::BLINK_LEFT;
+            steerFrontAndRear = true;
+            break;
+        case (drive_ros_msgs::TrajectoryMetaInput::SWITCH_RIGHT):
+            // shift lane distance to the right
+            laneChangeDistance = -laneWidth;
+            blink_com = drive_ros_uavcan::phoenix_msgs__NucDriveCommand::BLINK_RIGHT;
+            steerFrontAndRear = true;
+            break;
+        case (drive_ros_msgs::TrajectoryMetaInput::TURN_LEFT):
+            // hard-code steering angle to the left
+            presetSteeringAngle = crossingTurnAngleLeft;
+            steeringAngleFixed = true;
+            blink_com = drive_ros_uavcan::phoenix_msgs__NucDriveCommand::BLINK_LEFT;
+            break;
+        case (drive_ros_msgs::TrajectoryMetaInput::TURN_RIGHT):
+            // hard code steering angle to the right
+            presetSteeringAngle = -crossingTurnAngleRight;
+            steeringAngleFixed = true;
+            blink_com = drive_ros_uavcan::phoenix_msgs__NucDriveCommand::BLINK_RIGHT;
+            break;
+        case (drive_ros_msgs::TrajectoryMetaInput::STRAIGHT_FORWARD):
+            // fix steering to go straight
+            presetSteeringAngle = 0.f;
+            steeringAngleFixed = true;
+            break;
+    }
+    return blink_com
 }

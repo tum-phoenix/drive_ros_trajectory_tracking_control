@@ -10,6 +10,8 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
+    drive_ros_trajectory_tracking_controller::Model_Predictive_Controller(nh,pnh);
+
     while (ros::ok()) {
         ros::spin();
     }
