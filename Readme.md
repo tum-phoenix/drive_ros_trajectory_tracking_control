@@ -1,2 +1,2 @@
 
-# Model Predictive Control and Flatnessbased controller for the CC2020 car
+# Model Predictive Control and Flatness-based controller for the CC2020 car
