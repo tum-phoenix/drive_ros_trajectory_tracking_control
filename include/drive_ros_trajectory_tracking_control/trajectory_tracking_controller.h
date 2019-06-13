@@ -1,17 +1,25 @@
-//
-// Created by sebastian on 19.05.19.
-//
+#ifndef DRIVE_TRAJECTORY_TRACKING_CONTROLLER_H
+#define DRIVE_TRAJECTORY_TRACKING_CONTROLLER_H
 
-#ifndef SRC_TRAJECTORY_TRACKING_CONTROLLER_H
-#define SRC_TRAJECTORY_TRACKING_CONTROLLER_H
+#include <drive_ros_msgs/TrajectoryMetaInput.h>
 
 
-class trajectory_tracking_controller {
+class TrajectoryTrackingController {
 public:
+    TrajectoryTrackingController();
+    ~TrajectoryTrackingController();
+private:
+    void metaInputCB();
+    void driveStateCB();
+    void processMetaInput();
+    // this is where the control magic happens
+    void trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr &msg);
+
+    // store current driving state
     float cur_v=0;
     float cur_angle_f=0;
     float cur_angle_r=0;
 };
 
 
-#endif //SRC_TRAJECTORY_TRACKING_CONTROLLER_H
+#endif //DRIVE_TRAJECTORY_TRACKING_CONTROLLER_H
