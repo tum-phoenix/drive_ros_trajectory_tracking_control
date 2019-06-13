@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    ModelPredictiveController(nh,pnh);
+    ModelPredictiveController controller(nh);
 
     while (ros::ok()) {
         ros::spin();

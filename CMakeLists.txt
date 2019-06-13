@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(drive_ros_trajectory_tracking_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,10 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   drive_ros_msgs
+  drive_ros_uavcan
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(cppad)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -106,7 +107,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES drive_ros_trajectory_tracking_control
   CATKIN_DEPENDS roscpp std_msgs drive_ros_msgs drive_ros_uavcan
-#  DEPENDS system_lib
+  DEPENDS cppad
 )
 
 ###########
@@ -118,6 +119,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${cppad_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -148,6 +150,7 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
+   cppad
 )
 
 #############
