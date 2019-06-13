@@ -33,15 +33,18 @@ void Model_Predictive_Controller::set_current_egomotion(const drieve_teensy_main
 }
 
 
-void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLineConstPtr &msg){
-        int delay =  config().get<int>("stagePrediction",0); //wo bekommen wir die kacke her? Step length
+void Model_Predictive_Controller::control_values(ros::NodeHandle nh,const drive_ros_msgs::DrivingLineConstPtr &msg){
+
+        int delay;
+        nh.getParam("delay",delay);
         if(delay < 0 || delay >= HORIZON_LEN){
             logger.error("invalid stagePrediction")<<delay;
             return false;
         }
 
         //get trajectory with distance between points
-        double link_length = config().get<double>("link_length",0.1);
+        double link_length 
+         nh.getParam("link_length",link_length);
         street_environment::Trajectory tr = trajectory->getWithDistanceBetweenPoints(link_length); // Ros!
         if(tr.size() < CHAIN_NUM_NODES){
             logger.error("INVALID path given")<< tr.size();
@@ -57,7 +60,8 @@ void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLi
         double nodes_y[CHAIN_NUM_NODES];
         double nodes_vMin[CHAIN_NUM_NODES-1];
         double nodes_vMax[CHAIN_NUM_NODES-1];
-        double max_lateral_acc = config().get<double>("max_lateral_acc",1);
+        double max_lateral_acc 
+        nh.getParam("max_lateral_acc",max_lateral_acc);
         double max_num_iter = 100;
         double alpha = 0.5;
         double beta_1 = 0.7;
@@ -65,9 +69,11 @@ void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLi
         double q_diag[NUM_STATES];//	stage state cost matrix Q diagonal, len = NUM_STATES
         double r_diag[NUM_INPUTS];//	stage input cost matrix R diagonal, len = NUM_INPUTS
         double p_diag[NUM_STATES];
-        const double u_1_ub = config().get<double>("front_angle_rate_Bound",1);
+        const double u_1_ub
+        nh.getParam("front_angle_rate_Bound",u_1_ub);
         const double u_1_lb = -u_1_ub;
-        const double u_2_ub = config().get<double>("rear_angle_rate_Bound",1);;
+        const double u_2_ub
+        nh.getParam("rear_angle_rate_Bound",u_2_ub);
         const double u_2_lb = -u_2_ub;
 
         //car state
@@ -76,16 +82,18 @@ void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLi
         currentCarState[2] = cur_angle_f; //car input? aus LMS? -> ros
         currentCarState[3] = cur_angle_r;
 
-        q_diag[0] = config().get<double>("penalty_y",10);   //config -> ros parameter?
-        q_diag[1] = config().get<double>("penalty_phi",10);
-        q_diag[2] = config().get<double>("penalty_frontAngle",1);
-        q_diag[3] = config().get<double>("penalty_rearAngle",1);
+        
+        nh.getParam("penalty_y",q_diag[0]);
+        nh.getParam("penalty_phi",q_diag[1]);
+        nh.getParam("penalty_frontAngle",q_diag[2]);
+        nh.getParam("penalty_rearAngle",q_diag[3]);
+       
         //path
         for(int i = 0; i < NUM_STATES; i++){
             p_diag[i] = q_diag[i];
         }
-        r_diag[0] = config().get<double>("penalty_frontAngle_rate",100);    //ros parameter
-        r_diag[1] = config().get<double>("penalty_rearAngle_rate",100);
+        nh.getParam("penalty_frontAngle_rate",r_diag[0]);
+        nh.getParam("penalty_rearAngle_rate",r_diag[1]);
 
 
         //set input date
@@ -102,8 +110,8 @@ void Model_Predictive_Controller::control_values(const drive_ros_msgs::DrivingLi
             nodes_vMin[i] = std::min<double>(t.velocity,t2.velocity);
             */
             //for first tests:
-            nodes_vMax[i] = config().get<double>("node_MaxSpeed",0.5);  //rosconfig wozu braucht man das?
-            nodes_vMin[i] = config().get<double>("node_MinSpeed",0.5);  //unstraints?
+            nh.getParam("node_MaxSpeed",nodes_vMax[i]);
+            nh.getParam("node_MinSpeed",nodes_vMin[i]);
         }
 
 
