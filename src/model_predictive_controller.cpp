@@ -9,27 +9,24 @@ extern "C"{
 #include "drive_ros_trajectory_tracking_control/andromeda.h"
 }
 
-ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh):
-  nh_(nh)
+ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::NodeHandle pnh):
+    TrajectoryTrackingController(nh, pnh)
 {
-  trajectory_meta_sub_ = nh_.subscribe("meta_in", 10, &ModelPredictiveController::blink_check, this);
-  driving_command_sub = nh.subscribe("");
-  trajectory=nh.subscribe("", 1, Model_Predictive_Controller::trajectoryCB, this);
 }
 
 ModelPredictiveController::~ModelPredictiveController() {}
 
 void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr &msg) {
   int delay;
-  nh.getParam("delay",delay);
+  pnh_.getParam("delay", delay);
   if(delay < 0 || delay >= HORIZON_LEN){
-    ROS_ERROR("invalid stagePrediction");
+    ROS_ERROR("Invalid stagePrediction");
     return false;
   }
 
   //get trajectory with distance between points
   double link_length
-      nh_.getParam("link_length",link_length);
+  nh_.getParam("link_length",link_length);
   street_environment::Trajectory tr = trajectory->getWithDistanceBetweenPoints(link_length); // Ros!
   if(tr.size() < CHAIN_NUM_NODES){
     logger.error("INVALID path given")<< tr.size();

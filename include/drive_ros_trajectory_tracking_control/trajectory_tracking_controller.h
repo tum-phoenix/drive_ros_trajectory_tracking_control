@@ -1,6 +1,7 @@
 #ifndef DRIVE_TRAJECTORY_TRACKING_CONTROLLER_H
 #define DRIVE_TRAJECTORY_TRACKING_CONTROLLER_H
 
+#include <ros/ros.h>
 #include <drive_ros_msgs/TrajectoryMetaInput.h>
 #include <drive_ros_msgs/DrivingLine.h>
 #include <drive_ros_uavcan/phoenix_msgs__NucDriveCommand.h>
@@ -8,7 +9,7 @@
 
 class TrajectoryTrackingController {
 public:
-    TrajectoryTrackingController();
+    TrajectoryTrackingController(ros::NodeHandle nh, ros::NodeHandle pnh);
     ~TrajectoryTrackingController();
 private:
     // actually just temp until we get a proper trajectory generator
@@ -18,8 +19,17 @@ private:
     // this is where the control magic happens
     void trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr &msg);
 
+    // NodeHandles
+    ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+
     // subscribers
-    ros::Subscriber trajectory_meta_sub_;
+    ros::Subscriber meta_input_sub_;
+    ros::Subscriber drive_state_sub_;
+    ros::Subscriber trajectory_sub_;
+
+    // publishers
+    ros::Publisher nuc_command_pub_;
 
     // store current driving state
     float cur_v_ = 0;

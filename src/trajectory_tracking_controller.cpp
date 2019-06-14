@@ -1,6 +1,15 @@
 #include <drive_ros_trajectory_tracking_control/trajectory_tracking_controller.h>
 
-TrajectoryTrackingController::TrajectoryTrackingController(){}
+TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, ros::NodeHandle pnh):
+    nh_(nh),
+    pnh_(pnh)
+{
+    meta_input_sub_ = nh_.subscribe("meta_in", 10, &TrajectoryTrackingController::metaInputCB, this);
+    drive_state_sub_ = nh_.subscribe("drive_state_in", 5, &TrajectoryTrackingController::driveStateCB, this);
+    trajectory_sub_ = nh_.subscribe("trajectory_in", 1, &TrajectoryTrackingController::trajectoryCB, this);
+    nuc_command_pub_ = nh_.advertise<drive_ros_uavcan::phoenix_msgs__NucDriveCommand>("drive_command_out", 5);
+}
+
 TrajectoryTrackingController::~TrajectoryTrackingController(){}
 
 void TrajectoryTrackingController::metaInputCB(const drive_ros_msgs::TrajectoryMetaInputConstPtr &msg) {
@@ -37,6 +46,6 @@ void TrajectoryTrackingController::processMetaInput() {
             break;
     }
 
-    // todo: publish blink command
+    nuc_command_pub_.publish(cmd_msg);
 }
 

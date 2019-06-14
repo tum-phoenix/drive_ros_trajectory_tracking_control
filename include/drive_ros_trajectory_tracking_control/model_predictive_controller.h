@@ -6,11 +6,10 @@
 
 class ModelPredictiveController : public TrajectoryTrackingController{
 public:
-    ModelPredictiveController(ros::NodeHandle nh);
+    ModelPredictiveController(ros::NodeHandle nh, ros::NodeHandle pnh);
     ~ModelPredictiveController();
 private:
     void trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr &msg);
-    ros::NodeHandle nh_;
 };
 
 
