@@ -49,3 +49,8 @@ void TrajectoryTrackingController::processMetaInput() {
     nuc_command_pub_.publish(cmd_msg);
 }
 
+void TrajectoryTrackingController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg)
+{
+  ROS_INFO("TrajectoryTrackingController::trajectoryCB called, this should not happen!");
+}
+
