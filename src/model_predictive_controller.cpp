@@ -24,12 +24,12 @@ ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::No
   pnh_.getParam("rear_angle_rate_bound", u_2_ub_);
   u_2_lb_ = -u_2_ub_;
 
-  nh.getParam("penalty_y", q_diag[0]);
-  nh.getParam("penalty_phi", q_diag[1]);
-  nh.getParam("penalty_front_angle", q_diag[2]);
-  nh.getParam("penalty_rear_angle", q_diag[3]);
-  nh.getParam("penalty_frontAngle_rate",r_diag[0]);
-  nh.getParam("penalty_rearAngle_rate",r_diag[1]);
+  if (!pnh_.getParam("penalty_y", q_diag[0]));
+  pnh_.getParam("penalty_phi", q_diag[1]);
+  pnh_.getParam("penalty_front_angle", q_diag[2]);
+  pnh_.getParam("penalty_rear_angle", q_diag[3]);
+  pnh_.getParam("penalty_front_angle_rate", r_diag[0]);
+  pnh_.getParam("penalty_rear_angle_rate", r_diag[1]);
 
   // path
   for(int i = 0; i < NUM_STATES; i++) {
