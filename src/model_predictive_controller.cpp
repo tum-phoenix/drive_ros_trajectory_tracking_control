@@ -9,35 +9,29 @@
 ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::NodeHandle pnh):
     TrajectoryTrackingController(nh, pnh)
 {
-  pnh_.getParam("delay", delay_);
-
+  nh.getParam("/delay", delay_);
+  ROS_INFO_STREAM("Delay = " << delay_<< " Horizon: " << HORIZON_LEN);
   if(delay_ < 0 || delay_ >= HORIZON_LEN){
     ROS_ERROR("Invalid stagePrediction");
     return;
   }
 
-  pnh_.getParam("link_length",link_length_);
-  pnh_.getParam("max_lateral_acc", max_lateral_acc_);
-
-  pnh_.getParam("front_angle_rate_bound", u_1_ub_);
-  u_1_lb_ = -u_1_ub_;
-  pnh_.getParam("rear_angle_rate_bound", u_2_ub_);
-  u_2_lb_ = -u_2_ub_;
-
+  ROS_INFO_STREAM("u1 = " << u_1_lb_<< "u2: " << u_2_lb_);
   nh.getParam("penalty_y", q_diag[0]);
   nh.getParam("penalty_phi", q_diag[1]);
   nh.getParam("penalty_front_angle", q_diag[2]);
   nh.getParam("penalty_rear_angle", q_diag[3]);
   nh.getParam("penalty_frontAngle_rate",r_diag[0]);
   nh.getParam("penalty_rearAngle_rate",r_diag[1]);
-
+  ROS_INFO_STREAM("penalty_y = " << q_diag[0]<< " penalty_phi: " << q_diag[1]);
   // path
   for(int i = 0; i < NUM_STATES; i++) {
     p_diag[i] = q_diag[i];
   }
 
-  nh.getParam("node_max_speed", nodes_v_max_);
-  nh.getParam("node_min_speed", nodes_v_min_);
+
+  ROS_INFO_STREAM("max = " << nodes_v_max_<< " min: " << nodes_v_min_);
+  trajectory_sub_ = nh.subscribe("trajectory_generator/trajectory", 1, &ModelPredictiveController::trajectoryCB, this);
 }
 
 ModelPredictiveController::~ModelPredictiveController() {}
@@ -45,6 +39,7 @@ ModelPredictiveController::~ModelPredictiveController() {}
 void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
   //get trajectory with distance between points
   if(msg->points.size() < CHAIN_NUM_NODES){
+      ROS_INFO_STREAM(msg->points.size());
     ROS_ERROR_STREAM("Path with invalid number of nodes given: "<< msg->points.size() << " minimum required is: " <<
                      CHAIN_NUM_NODES);
     return;
@@ -62,11 +57,10 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
   currentCarState[1] = 0;
   currentCarState[2] = cur_angle_f_; //car input? aus LMS? -> ros
   currentCarState[3] = cur_angle_r_;
-
   //set input data
   for(int i = 0; i < CHAIN_NUM_NODES; i++){
-    nodes_x[i] = msg->points[i].pose.position.x;
-    nodes_y[i] = msg->points[i].pose.position.y;
+    nodes_x[i] = msg->points[i].pose.x;
+    nodes_y[i] = msg->points[i].pose.y;
   }
   for(int i = 0; i < CHAIN_NUM_NODES-1; i++){
     /*
@@ -84,7 +78,8 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
   double v_star[HORIZON_LEN];
   double u_1_star[HORIZON_LEN];   //Horizon_len ? Präditionshorrizont in steps?
   double u_2_star[HORIZON_LEN];
-
+  ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
+  //ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
   call_andromeda(currentCarState,
                  q_diag,
                  r_diag,
@@ -108,13 +103,16 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
                  u_2_star);
 
   //Set values
+  ROS_INFO_STREAM(v_star[2]);
   drive_ros_uavcan::phoenix_msgs__NucDriveCommand drive_command_msg;
+
   drive_command_msg.phi_f = cur_angle_f_ + u_1_star[delay_]; //publish as driving command
   drive_command_msg.phi_r = cur_angle_r_ + u_2_star[delay_];
   drive_command_msg.lin_vel = v_star[delay_];
-
-  ROS_INFO_NAMED(stream_name_, "Steering front = %.1f[deg]", drive_command_msg.phi_f * 180.f / M_PI);
-  ROS_INFO_NAMED(stream_name_, "Steering rear  = %.1f[deg]", drive_command_msg.phi_r * 180.f / M_PI);
+  nuc_command_pub_.publish(drive_command_msg);
+  ROS_INFO_STREAM( "Steering front = " << drive_command_msg.phi_f * 180.f / M_PI);
+  ROS_INFO_STREAM( "Steering rear = " << drive_command_msg.phi_r * 180.f / M_PI);
 
 //  state.targetDistance = 1; //TODO dont think that we even need it
 }
+

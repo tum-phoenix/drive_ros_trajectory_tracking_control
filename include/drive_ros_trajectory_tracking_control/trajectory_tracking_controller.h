@@ -13,9 +13,9 @@ public:
     ~TrajectoryTrackingController();
 protected:
     // actually just temp until we get a proper trajectory generator
+    void processMetaInput();
     void metaInputCB(const drive_ros_msgs::TrajectoryMetaInputConstPtr &msg);
     void driveStateCB(const drive_ros_uavcan::phoenix_msgs__DriveStateConstPtr &msg);
-    void processMetaInput();
     // this is where the control magic happens
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
 
@@ -36,6 +36,14 @@ protected:
     float cur_angle_f_ = 0;
     float cur_angle_r_ = 0;
 
+    double link_length_;
+    double max_lateral_acc_;
+    double u_1_ub_;
+    double u_1_lb_;
+    double u_2_ub_;
+    double u_2_lb_;
+    double nodes_v_max_;
+    double nodes_v_min_;
     // store current meta inputs
     // todo: handle this stuff in trajectory generator, this should not be needed in the controller
     float v_max_ = 0;

@@ -5,20 +5,20 @@
     <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>
     <arg name="uavcan_egomotion" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <rosparam>
-        delay:0 <!--stage prediction-->
+        delay: 0 <!--stage prediction-->
         link_length: 0.1
-        max_lateral_acc:1
-        front_angle_rate_Bound:1
-        rear_angle_rate_Bound:1
-        penalty_y:10
-        penalty_phi:10
-        penalty_frontAngle:1
-        penalty_rearAngle:1
-        penalty_frontAngle_rate:100
-        penalty_rearAngle_rate:100
-        node_MaxSpeed:0.5
-        node_MinSpeed:0.5
+        max_lateral_acc: 1
+        front_angle_rate_Bound: 1
+        rear_angle_rate_Bound: 1
+        penalty_y: 10
+        penalty_phi: 10
+        penalty_frontAngle: 1
+        penalty_rearAngle: 1
+        penalty_frontAngle_rate: 100
+        penalty_rearAngle_rate: 100
+        node_MaxSpeed: 1.0
+        node_MinSpeed: 0.5
     </rosparam>
     <arg name="output" default="screen"/>
-    <node name="trajectory_tracking_controller" pkg="drive_ros_trajectory_tracking_controller" type="trajectory_tracking_controller_node" respawn="false" output="$(arg output)">
+    <node name="trajectory_tracking_controller" pkg="drive_ros_trajectory_tracking_control" type="drive_ros_trajectory_tracking_control_node" respawn="false" output="$(arg output)" />
 </launch>
