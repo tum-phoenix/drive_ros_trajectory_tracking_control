@@ -38,6 +38,7 @@ ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::No
 
   nh.getParam("node_max_speed", nodes_v_max_);
   nh.getParam("node_min_speed", nodes_v_min_);
+  trajectory_sub_ = nh.subscribe("trajectory_generator/trajectory", 1, &ModelPredictiveController::trajectoryCB, this);
 }
 
 ModelPredictiveController::~ModelPredictiveController() {}
@@ -65,8 +66,8 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
 
   //set input data
   for(int i = 0; i < CHAIN_NUM_NODES; i++){
-    nodes_x[i] = msg->points[i].pose.position.x;
-    nodes_y[i] = msg->points[i].pose.position.y;
+    nodes_x[i] = msg->points[i].pose.x;
+    nodes_y[i] = msg->points[i].pose.y;
   }
   for(int i = 0; i < CHAIN_NUM_NODES-1; i++){
     /*
@@ -84,7 +85,8 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
   double v_star[HORIZON_LEN];
   double u_1_star[HORIZON_LEN];   //Horizon_len ? Präditionshorrizont in steps?
   double u_2_star[HORIZON_LEN];
-
+  ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
+  //ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
   call_andromeda(currentCarState,
                  q_diag,
                  r_diag,
@@ -109,12 +111,13 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
 
   //Set values
   drive_ros_uavcan::phoenix_msgs__NucDriveCommand drive_command_msg;
+
   drive_command_msg.phi_f = cur_angle_f_ + u_1_star[delay_]; //publish as driving command
   drive_command_msg.phi_r = cur_angle_r_ + u_2_star[delay_];
   drive_command_msg.lin_vel = v_star[delay_];
-
-  ROS_INFO_NAMED(stream_name_, "Steering front = %.1f[deg]", drive_command_msg.phi_f * 180.f / M_PI);
-  ROS_INFO_NAMED(stream_name_, "Steering rear  = %.1f[deg]", drive_command_msg.phi_r * 180.f / M_PI);
+  nuc_command_pub_.publish(drive_command_msg);
+  ROS_INFO_STREAM( "Steering front = " << drive_command_msg.phi_f * 180.f / M_PI);
+  ROS_INFO_STREAM( "Steering rear = " << drive_command_msg.phi_r * 180.f / M_PI);
 
 //  state.targetDistance = 1; //TODO dont think that we even need it
 }

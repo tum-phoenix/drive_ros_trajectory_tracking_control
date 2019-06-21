@@ -5,9 +5,20 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     pnh_(pnh)
 {
     meta_input_sub_ = nh_.subscribe("meta_in", 10, &TrajectoryTrackingController::metaInputCB, this);
-    drive_state_sub_ = nh_.subscribe("drive_state_in", 5, &TrajectoryTrackingController::driveStateCB, this);
-    trajectory_sub_ = nh_.subscribe("trajectory_in", 1, &TrajectoryTrackingController::trajectoryCB, this);
+    drive_state_sub_ = nh_.subscribe("uavcan_topic", 5, &TrajectoryTrackingController::driveStateCB, this);
     nuc_command_pub_ = nh_.advertise<drive_ros_uavcan::phoenix_msgs__NucDriveCommand>("drive_command_out", 5);
+
+    pnh_.getParam("link_length",link_length_);
+    pnh_.getParam("max_lateral_acc", max_lateral_acc_);
+
+    pnh_.getParam("/front_angle_rate_Bound", u_1_ub_);
+    u_1_lb_ = -u_1_ub_;
+    pnh_.getParam("/rear_angle_rate_Bound", u_2_ub_);
+    u_2_lb_ = -u_2_ub_;
+
+    pnh_.getParam("/node_MaxSpeed", nodes_v_max_);
+    pnh_.getParam("/node_MinSpeed", nodes_v_min_);
+    ROS_INFO_STREAM("Init Completed");
 }
 
 TrajectoryTrackingController::~TrajectoryTrackingController(){}
@@ -21,6 +32,7 @@ void TrajectoryTrackingController::driveStateCB(const drive_ros_uavcan::phoenix_
     cur_v_ = msg->v;
     cur_angle_f_ = msg->steer_f;
     cur_angle_r_ = msg->steer_r;
+    ROS_INFO_STREAM("Set current angle");
 }
 
 void TrajectoryTrackingController::processMetaInput() {
@@ -51,6 +63,6 @@ void TrajectoryTrackingController::processMetaInput() {
 
 void TrajectoryTrackingController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg)
 {
-  ROS_INFO("TrajectoryTrackingController::trajectoryCB called, this should not happen!");
+    ROS_INFO("TrajectoryTrackingController::trajectoryCB called, this should not happen!");
 }
 
