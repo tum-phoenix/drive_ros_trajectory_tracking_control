@@ -38,7 +38,7 @@ ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::No
 
   nh.getParam("node_max_speed", nodes_v_max_);
   nh.getParam("node_min_speed", nodes_v_min_);
-  trajectory_sub_ = nh.subscribe("trajectory_generator/trajectory", 1, &ModelPredictiveController::trajectoryCB, this);
+  trajectory_sub_ = nh.subscribe("trajectory_in", 1, &ModelPredictiveController::trajectoryCB, this);
 }
 
 ModelPredictiveController::~ModelPredictiveController() {}

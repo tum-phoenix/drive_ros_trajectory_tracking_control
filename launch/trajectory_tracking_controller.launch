@@ -1,11 +1,14 @@
-
 <launch>
     <arg name="driving_line_topic" default="/driving_line"/>
+    <arg name="drive_command_out" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <arg name="uavcan_topic" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>
-    <arg name="uavcan_egomotion" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <arg name="output" default="screen"/>
     <node name="trajectory_tracking_controller" pkg="drive_ros_trajectory_tracking_control" type="drive_ros_trajectory_tracking_control_node" respawn="false" output="$(arg output)">
+        <remap from="trajectory_in" to="$(arg driving_line_topic)"/>
+        <remap from="meta_in" to="$(arg trajectory_meta_input_topic)"/>
+        <remap from="drive_command_out" to="$(arg drive_command_out)"/>
+        <remap from="uavcan_topic" to="$(arg uavcan_topic)"/>
         <rosparam>
             delay: 0 <!--stage prediction-->
             link_length: 0.1
