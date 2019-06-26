@@ -11,13 +11,13 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     pnh_.getParam("link_length",link_length_);
     pnh_.getParam("max_lateral_acc", max_lateral_acc_);
 
-    pnh_.getParam("/front_angle_rate_Bound", u_1_ub_);
+    pnh_.getParam("front_angle_rate_Bound", u_1_ub_);
     u_1_lb_ = -u_1_ub_;
-    pnh_.getParam("/rear_angle_rate_Bound", u_2_ub_);
+    pnh_.getParam("rear_angle_rate_Bound", u_2_ub_);
     u_2_lb_ = -u_2_ub_;
 
-    pnh_.getParam("/node_MaxSpeed", nodes_v_max_);
-    pnh_.getParam("/node_MinSpeed", nodes_v_min_);
+    pnh_.getParam("node_max_speed", nodes_v_max_);
+    pnh_.getParam("node_min_speed", nodes_v_min_);
     ROS_INFO_STREAM("Init Completed");
 }
 

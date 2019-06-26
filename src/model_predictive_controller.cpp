@@ -16,14 +16,6 @@ ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::No
     return;
   }
 
-  pnh_.getParam("link_length",link_length_);
-  pnh_.getParam("max_lateral_acc", max_lateral_acc_);
-
-  pnh_.getParam("front_angle_rate_bound", u_1_ub_);
-  u_1_lb_ = -u_1_ub_;
-  pnh_.getParam("rear_angle_rate_bound", u_2_ub_);
-  u_2_lb_ = -u_2_ub_;
-
   if (!pnh_.getParam("penalty_y", q_diag[0]));
   pnh_.getParam("penalty_phi", q_diag[1]);
   pnh_.getParam("penalty_front_angle", q_diag[2]);
@@ -36,8 +28,6 @@ ModelPredictiveController::ModelPredictiveController(ros::NodeHandle nh, ros::No
     p_diag[i] = q_diag[i];
   }
 
-  nh.getParam("node_max_speed", nodes_v_max_);
-  nh.getParam("node_min_speed", nodes_v_min_);
   trajectory_sub_ = nh.subscribe("trajectory_in", 1, &ModelPredictiveController::trajectoryCB, this);
 }
 
