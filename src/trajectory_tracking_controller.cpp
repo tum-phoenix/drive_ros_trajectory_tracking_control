@@ -5,7 +5,7 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     pnh_(pnh)
 {
     meta_input_sub_ = nh_.subscribe("meta_in", 10, &TrajectoryTrackingController::metaInputCB, this);
-    drive_state_sub_ = nh_.subscribe("uavcan_topic", 5, &TrajectoryTrackingController::driveStateCB, this);
+    drive_state_sub_ = nh_.subscribe("drive_state_in", 5, &TrajectoryTrackingController::driveStateCB, this);
     nuc_command_pub_ = nh_.advertise<drive_ros_uavcan::phoenix_msgs__NucDriveCommand>("drive_command_out", 5);
 
     pnh_.getParam("link_length",link_length_);
