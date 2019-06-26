@@ -21,8 +21,8 @@
             penalty_rear_angle: 1
             penalty_front_angle_rate: 100
             penalty_rear_angle_rate: 100
-            node_MaxSpeed: 0.5
-            node_MinSpeed: 0.5
+            node_min_speed: 0.5
+            node_max_speed: 0.5
         </rosparam>
     </node>
 </launch>
