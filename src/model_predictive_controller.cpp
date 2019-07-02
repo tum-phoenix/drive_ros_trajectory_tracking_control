@@ -75,7 +75,8 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
   double v_star[HORIZON_LEN];
   double u_1_star[HORIZON_LEN];   //Horizon_len ? Präditionshorrizont in steps?
   double u_2_star[HORIZON_LEN];
-  ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
+  ROS_INFO_STREAM("Nodes 0: " << nodes_x[0] << ", "<< nodes_y[0] << " 1: " << nodes_x[1] << ", "
+                                            << nodes_y[1] << " 2: " << nodes_x[2] << ", "<< nodes_y[2]);
   //ROS_INFO_STREAM("Nodes = " << nodes_x[0] << nodes_y[0] << nodes_x[1] << nodes_y[1] << nodes_x[2] << nodes_y[2]);
   call_andromeda(currentCarState,
                  q_diag,
@@ -104,6 +105,8 @@ void ModelPredictiveController::trajectoryCB(const drive_ros_msgs::TrajectoryCon
 
   drive_command_msg.phi_f = cur_angle_f_ + u_1_star[delay_]; //publish as driving command
   drive_command_msg.phi_r = cur_angle_r_ + u_2_star[delay_];
+  drive_command_msg.phi_f = -drive_command_msg.phi_f;
+  drive_command_msg.phi_r = -drive_command_msg.phi_r;
   drive_command_msg.lin_vel = v_star[delay_];
   nuc_command_pub_.publish(drive_command_msg);
   ROS_INFO_STREAM( "Steering front = " << drive_command_msg.phi_f * 180.f / M_PI);
