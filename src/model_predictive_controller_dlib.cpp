@@ -26,11 +26,11 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
     //Carrot... da diskretisiert schwierig....
     double v =cur_v_
     if(fabs(v) < 0.1){
-        logger.debug("cycle")<<"car is slow: "<<car->velocity();
+        ROS_INFO_STREAM("car is slow: ");
         v=0.1;//Some controller has some issue divides by v without error-checking
     }
 
-    float forwardDistanceX = minForwardDist_ + std::abs(v)* T_
+    float forwardDistanceX = std::abs(v)* T_
     float forwardDistanceY =  compute_polynomial_at_location(msg, forwardDistanceX);
     //const float distanceSearched = config().get<float>("distanceRegelpunkt", 0.50);
 
