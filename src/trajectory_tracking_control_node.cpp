@@ -7,9 +7,10 @@ int main(int argc, char **argv) {
     ros::NodeHandle pnh("~");
 
     ModelPredictiveController controller(nh, pnh);
-
+    ros::Rate loop_rate(20);
     while (ros::ok()) {
         ros::spin();
+        loop_rate.sleep();
     }
     return 0;
 }
