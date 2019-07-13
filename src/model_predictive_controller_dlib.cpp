@@ -30,7 +30,7 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
         v=0.1;//Some controller has some issue divides by v without error-checking
     }
 
-    float forwardDistanceX = minForwardDist_ + std::abs(v)
+    float forwardDistanceX = minForwardDist_ + std::abs(v)*
     float forwardDistanceY =  compute_polynomial_at_location(msg, forwardDistanceX);
     //const float distanceSearched = config().get<float>("distanceRegelpunkt", 0.50);
 
