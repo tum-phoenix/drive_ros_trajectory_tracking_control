@@ -123,8 +123,9 @@ include_directories(
   control_systems/src
   ${catkin_INCLUDE_DIRS}
   ${cppad_INCLUDE_DIRS}
+ # dlib_files/dlib
 )
-
+add_subdirectory(dlib_files/dlib dlib_build)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/drive_ros_trajectory_tracking_control.cpp
@@ -153,13 +154,15 @@ add_executable(${PROJECT_NAME}_node
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_library (model_predictive_controller_dlib MODULE ${SOURCES} ${HEADERS} "dlib_files")
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
+#    dlib
 #   cppad
 #   ${CMAKE_CURRENT_SOURCE_DIR}/control-systems/src/andromeda.so
 )
+#add_subdirectory(dlib_files/dlib)
 
 #############
 ## Install ##
