@@ -4,7 +4,8 @@
 
 #ifndef SRC_MODEL_PREDICTIVE_CONTROLLER_DLIB_H
 #define SRC_MODEL_PREDICTIVE_CONTROLLER_DLIB_H
-
+#include <ros/ros.h>
+#include <drive_ros_trajectory_tracking_control/trajectory_tracking_controller.h>
 
 class ModelPredictiveController_dlib : public TrajectoryTrackingController{
 public:
@@ -18,7 +19,6 @@ private:
     // control parameters
     const int STATES_ = 2; //number of states (y and phi)
     const int CONTROLS_ = 2; //number of control inputs (steering_front and steering_rear)
-    double T_ = 0.1;
     double weight_y_;
     double weight_phi_;
     double weight_steeringFront_;
