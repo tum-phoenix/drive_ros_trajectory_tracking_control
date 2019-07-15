@@ -18,6 +18,8 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
 
     pnh_.getParam("node_max_speed", nodes_v_max_);
     pnh_.getParam("node_min_speed", nodes_v_min_);
+    pnh_.getParam("cycletime", cycle_t_);
+
     ROS_INFO_STREAM("Init Completed");
 }
 

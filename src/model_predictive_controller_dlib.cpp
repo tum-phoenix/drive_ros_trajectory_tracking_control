@@ -1,8 +1,6 @@
-//
-// Created by sebastian on 02.07.19.
-//
 
-#include "../include/drive_ros_trajectory_tracking_control/model_predictive_controller_dlib.h"
+#include <drive_ros_trajectory_tracking_control/model_predictive_controller_dlib.h>
+
 
 ModelPredictiveController_dlib::ModelPredictiveController_dlib(ros::NodeHandle nh, ros::NodeHandle pnh):
         TrajectoryTrackingController(nh, pnh)
@@ -26,11 +24,12 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
     //Carrot... da diskretisiert schwierig....
     double v =cur_v_
     if(fabs(v) < 0.1){
-        logger.debug("cycle")<<"car is slow: "<<car->velocity();
+        ROS_INFO_STREAM("car is slow: ");
         v=0.1;//Some controller has some issue divides by v without error-checking
     }
 
-    float forwardDistanceX = minForwardDist_ + std::abs(v)*
+
+    float forwardDistanceX = std::abs(v)* cycle_t_;
     float forwardDistanceY =  compute_polynomial_at_location(msg, forwardDistanceX);
     //const float distanceSearched = config().get<float>("distanceRegelpunkt", 0.50);
 
@@ -42,10 +41,10 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
     double steering_front, steering_rear;
 
     dlib::matrix<double,STATES_,STATES_> A;
-    A = 1, T*v, 0, 1;
+    A = 1, T_*v, 0, 1;
 
     dlib::matrix<double,STATES_,CONTROLS_> B;
-    B = 0, T*v, T*v/l, -T*v/l;
+    B = 0, T_*v, T_*v/l, -T_*v/l;
 
     dlib::matrix<double,STATES_,1> C; //keine konstante Stoerung
     C = 0, 0;
