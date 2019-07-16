@@ -13,6 +13,7 @@
         <rosparam>
             delay: 0 <!--stage prediction-->
             link_length: 0.1
+            cycletime: 20
             max_lateral_acc: 1
             front_angle_rate_Bound: 1
             rear_angle_rate_Bound: 1
