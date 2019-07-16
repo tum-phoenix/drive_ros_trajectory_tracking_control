@@ -18,8 +18,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
+
 #include "../matrix.h"
-#include "../smart_pointers.h"
 #include "optimization_bobyqa_abstract.h"
 #include "optimization.h"
 
@@ -59,7 +60,7 @@ namespace dlib
         {
             const unsigned long n = x.size();
             const unsigned long w_size = (npt+5)*(npt+n)+3*n*(n+5)/2;
-            scoped_ptr<doublereal[]> w(new doublereal[w_size]);
+            std::unique_ptr<doublereal[]> w(new doublereal[w_size]);
 
             // make these temporary matrices becuse U might be some
             // kind of matrix_exp that doesn't support taking the address
@@ -288,7 +289,7 @@ namespace dlib
             doublereal ratio = 0, dnorm = 0, vquad = 0, pqold = 0, tenth = 0;
             integer itest;
             doublereal sumpq, scaden;
-            doublereal errbig, cauchy, fracsq, biglsq, densav;
+            doublereal errbig, cauchy=0, fracsq, biglsq, densav;
             doublereal bdtest;
             doublereal crvmin, frhosq;
             doublereal distsq;
@@ -3360,7 +3361,7 @@ L210:
         DLIB_CASSERT(is_col_vector(x) && is_col_vector(x_lower) && is_col_vector(x_upper) &&
                     x.size() == x_lower.size() && x_lower.size() == x_upper.size() &&
                     x.size() > 1 && max_f_evals > 1,
-            "\tvoid find_min_bobyqa()"
+            "\tdouble find_min_bobyqa()"
             << "\n\t Invalid arguments have been given to this function"
             << "\n\t is_col_vector(x):       " << is_col_vector(x) 
             << "\n\t is_col_vector(x_lower): " << is_col_vector(x_lower) 
@@ -3375,7 +3376,7 @@ L210:
                     0 < rho_end && rho_end < rho_begin &&
                     min(x_upper - x_lower) > 2*rho_begin &&
                     min(x - x_lower) >= 0 && min(x_upper - x) >= 0,
-            "\tvoid find_min_bobyqa()"
+            "\tdouble find_min_bobyqa()"
             << "\n\t Invalid arguments have been given to this function"
             << "\n\t ntp in valid range: " << (x.size() + 2 <= npt && npt <= (x.size()+1)*(x.size()+2)/2)
             << "\n\t npt:                " << npt 

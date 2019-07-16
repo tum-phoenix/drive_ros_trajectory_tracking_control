@@ -72,6 +72,14 @@ namespace
             dlog << LINFO << "error: "<< max(abs(w-true_w));
             DLIB_TEST(max(abs(w-true_w)) < 1e-10);
 
+            solver.solve_with_elastic_net(make_oca_problem_c_svm<w_type>(2.0, 3.0, mat(x), mat(y), false, 1e-12, 40, max_index_plus_one(x)), w, 0.5);
+            dlog << LINFO << trans(w);
+            true_w = -0.5, 0.5, 0;
+            dlog << LINFO << "error: "<< max(abs(w-true_w));
+            DLIB_TEST(max(abs(w-true_w)) < 1e-10);
+
+            print_spinner();
+
             w_type prior = true_w;
             solver(make_oca_problem_c_svm<w_type>(20.0, 30.0, mat(x), mat(y), false, 1e-12, 40, max_index_plus_one(x)), w, prior);
             dlog << LINFO << trans(w);
@@ -120,7 +128,7 @@ namespace
             w = join_cols(df.basis_vectors(0), uniform_matrix<double>(1,1,-df.b));
             true_w = 0, 1, 0;
             dlog << LINFO << "error: "<< max(abs(w-true_w));
-            DLIB_TEST(max(abs(w-true_w)) < 1e-10);
+            DLIB_TEST_MSG(max(abs(w-true_w)) < 1e-9, max(abs(w-true_w)));
 
 
             print_spinner();
@@ -185,7 +193,7 @@ namespace
             w = join_cols(df.basis_vectors(0), uniform_matrix<double>(1,1,-df.b));
             true_w = 1, 0, 0;
             dlog << LINFO << "error: "<< max(abs(w-true_w));
-            DLIB_TEST(max(abs(w-true_w)) < 1e-10);
+            DLIB_TEST_MSG(max(abs(w-true_w)) < 1e-9, max(abs(w-true_w)));
 
 
 

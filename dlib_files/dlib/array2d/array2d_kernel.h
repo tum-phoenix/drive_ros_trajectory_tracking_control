@@ -60,6 +60,9 @@ namespace dlib
          
         typedef T type;
         typedef mem_manager mem_manager_type;
+        typedef T*          iterator;       
+        typedef const T*    const_iterator; 
+
 
         // -----------------------------------
 
@@ -72,7 +75,7 @@ namespace dlib
                         - (*this)[x] == data[x]
             !*/
 
-            friend class array2d;
+            friend class array2d<T,mem_manager>;
             friend class row_helper;
 
         public:
@@ -159,6 +162,24 @@ namespace dlib
 
             set_size(rows,cols);
         }
+
+        array2d(const array2d&) = delete;        // copy constructor
+        array2d& operator=(const array2d&) = delete;    // assignment operator
+
+#ifdef DLIB_HAS_RVALUE_REFERENCES
+        array2d(array2d&& item) : array2d()
+        {
+            swap(item);
+        }
+
+        array2d& operator= (
+            array2d&& rhs
+        )
+        {
+            swap(rhs);
+            return *this;
+        }
+#endif
 
         virtual ~array2d (
         ) { clear(); }
@@ -294,14 +315,35 @@ namespace dlib
             }
         }
 
-        unsigned long size (
-        ) const { return static_cast<unsigned long>(nc_ * nr_); }
+        size_t size (
+        ) const { return static_cast<size_t>(nc_) * static_cast<size_t>(nr_); }
 
         long width_step (
         ) const
         {
             return nc_*sizeof(T);
         }
+
+        iterator begin() 
+        {
+            return data;
+        }
+
+        iterator end()
+        {
+            return data+size();
+        }
+
+        const_iterator begin()  const
+        {
+            return data;
+        }
+
+        const_iterator end() const
+        {
+            return data+size();
+        }
+
 
     private:
 
@@ -314,10 +356,6 @@ namespace dlib
         mutable T* cur;
         T* last;
         mutable bool at_start_;
-
-        // restricted functions
-        array2d(array2d&);        // copy constructor
-        array2d& operator=(array2d&);    // assignment operator
 
     };
 
@@ -356,7 +394,7 @@ namespace dlib
                 serialize(item.element(),out);
             item.reset();
         }
-        catch (serialization_error e)
+        catch (serialization_error& e)
         { 
             throw serialization_error(e.info + "\n   while serializing object of type array2d"); 
         }
@@ -394,7 +432,7 @@ namespace dlib
                 deserialize(item.element(),in); 
             item.reset();
         }
-        catch (serialization_error e)
+        catch (serialization_error& e)
         { 
             item.clear();
             throw serialization_error(e.info + "\n   while deserializing object of type array2d"); 

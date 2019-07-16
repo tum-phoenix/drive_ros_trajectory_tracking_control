@@ -3,6 +3,10 @@
 #ifndef DLIB_ALL_SOURCe_
 #define DLIB_ALL_SOURCe_
 
+#if defined(DLIB_ALGs_) || defined(DLIB_PLATFORm_)
+#include "../dlib_basic_cpp_build_tutorial.txt"
+#endif
+
 // ISO C++ code
 #include "../base64/base64_kernel_1.cpp"
 #include "../bigint/bigint_kernel_1.cpp"
@@ -15,7 +19,10 @@
 #include "../md5/md5_kernel_1.cpp"
 #include "../tokenizer/tokenizer_kernel_1.cpp"
 #include "../unicode/unicode.cpp"
-#include "../data_io/image_dataset_metadata.cpp"
+#include "../test_for_odr_violations.cpp"
+
+
+
 
 #ifndef DLIB_ISO_CPP_ONLY
 // Code that depends on OS specific APIs
@@ -47,6 +54,7 @@
 #include "../threads/threads_kernel_2.cpp"
 #include "../threads/threads_kernel_shared.cpp"
 #include "../threads/thread_pool_extension.cpp"
+#include "../threads/async.cpp"
 #include "../timer/timer.cpp"
 #include "../stack_trace.cpp"
 
@@ -71,7 +79,21 @@
 #include "../gui_core/gui_core_kernel_2.cpp"
 #endif // DLIB_NO_GUI_SUPPORT
 
+#include "../cuda/cpu_dlib.cpp"
+#include "../cuda/tensor_tools.cpp"
+
 #endif // DLIB_ISO_CPP_ONLY
+
+
+
+#include "../data_io/image_dataset_metadata.cpp"
+#include "../data_io/mnist.cpp"
+#include "../global_optimization/global_function_search.cpp"
+#include "../filtering/kalman_filter.cpp"
+#include "../svm/auto.cpp"
+
+
+#define DLIB_ALL_SOURCE_END
 
 #endif // DLIB_ALL_SOURCe_
 

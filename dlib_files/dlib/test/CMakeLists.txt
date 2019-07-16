@@ -3,7 +3,16 @@
 # information about it at http://www.cmake.org
 #
 
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 2.8.12)
+
+# create a variable called target_name and set it to the string "dtest"
+set (target_name dtest)
+PROJECT(${target_name})
+
+# compile the dlib/all/source.cpp file into its own object just to make sure it compiles
+set(DLIB_TEST_COMPILE_ALL_SOURCE_CPP ON)
+
+add_subdirectory(.. dlib_build)
 
 # This variable contains a list of all the tests we are building
 # into the regression test suite.
@@ -33,12 +42,14 @@ set (tests
    conditioning_class_c.cpp
    conditioning_class.cpp
    config_reader.cpp
+   correlation_tracker.cpp
    crc32.cpp
    create_iris_datafile.cpp
    data_io.cpp
    directed_graph.cpp
    discriminant_pca.cpp
    disjoint_subsets.cpp
+   disjoint_subsets_sized.cpp
    ekm_and_lisf.cpp
    empirical_kernel_map.cpp
    entropy_coder.cpp
@@ -62,6 +73,7 @@ set (tests
    image.cpp
    iosockstream.cpp
    is_same_object.cpp
+   isotonic_regression.cpp
    kcentroid.cpp
    kernel_matrix.cpp
    kmeans.cpp
@@ -93,6 +105,7 @@ set (tests
    one_vs_one_trainer.cpp
    optimization.cpp
    optimization_test_functions.cpp
+   global_optimization.cpp
    opt_qp_solver.cpp
    parallel_for.cpp
    parse.cpp
@@ -106,6 +119,7 @@ set (tests
    read_write_mutex.cpp
    reference_counter.cpp
    rls.cpp
+   random_forest.cpp
    sammon.cpp
    scan_image.cpp
    sequence.cpp
@@ -115,7 +129,6 @@ set (tests
    set.cpp
    sldf.cpp
    sliding_buffer.cpp
-   smart_pointers.cpp
    sockets2.cpp
    sockets.cpp
    sockstreambuf.cpp
@@ -141,12 +154,12 @@ set (tests
    tuple.cpp
    type_safe_union.cpp
    vectorstream.cpp
+   dnn.cpp
+   cublas.cpp
+   find_optimal_parameters.cpp
+   elastic_net.cpp
    )
 
-# create a variable called target_name and set it to the string "dtest"
-set (target_name dtest)
-
-PROJECT(${target_name})
 
 # add all the cpp files we want to compile to this list.  This tells
 # cmake that they are part of our target (which is the executable named dtest)
@@ -155,17 +168,17 @@ ADD_EXECUTABLE(${target_name} main.cpp tester.cpp ${tests})
 # Turn on all warnings when using gcc.
 if (CMAKE_COMPILER_IS_GNUCXX)
    add_definitions("-W -Wall")
+   # I don't care about unused testing functions though.  I like to keep them
+   # around.  Don't warn about it.
+   add_definitions("-Wno-unused-function")
 endif()
 
 
-# Tell cmake to link our target executable to dlib.
-include(../cmake)
-TARGET_LINK_LIBRARIES(${target_name} dlib )
+TARGET_LINK_LIBRARIES(${target_name} dlib::dlib )
 
 
 if (NOT DLIB_NO_GUI_SUPPORT)
    add_subdirectory(gui)
    add_subdirectory(examples)
+   add_subdirectory(tools)
 endif()
-
-

@@ -125,6 +125,46 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    const matrix_exp subm_clipped (
+        const matrix_exp& m,
+        long row,
+        long col,
+        long nr,
+        long nc
+    );
+    /*!
+        ensures
+            - This function is just like subm() except that it will automatically clip the
+              indicated sub matrix window so that it does not extend outside m.
+              In particular:
+                - Let box = rectangle(col,row,col+nc-1,row+nr-1)
+                  (i.e. the box that contains the indicated sub matrix)
+                - Let box_clipped = box.intersect(get_rect(m))
+                - Then this function returns a matrix R such that:
+                    - R.nr() == box_clipped.height()
+                    - R.nc() == box_clipped.width()
+                    - for all valid r and c:
+                      R(r, c) == m(r+box_clipped.top(),c+box_clipped.left())
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    const matrix_exp subm_clipped (
+        const matrix_exp& m,
+        const rectangle& rect
+    );
+    /*!
+        ensures
+            - Let box_clipped == rect.intersect(get_rect(m))
+            - returns a matrix R such that:
+                - R.nr() == box_clipped.height()  
+                - R.nc() == box_clipped.width()
+                - for all valid r and c:
+                  R(r, c) == m(r+box_clipped.top(), c+box_clipped.left())
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
     const matrix_exp rowm (
         const matrix_exp& m,
         long row
@@ -199,8 +239,8 @@ namespace dlib
         requires
             - rows contains integral elements (e.g. int, long)
             - 0 <= min(rows) && max(rows) < m.nr() 
-            - rows.nr() == 1 || rows.nc() == 1
-              (i.e. rows must be a vector)
+            - rows.nr() == 1 || rows.nc() == 1 || rows.size() == 0
+              (i.e. rows must be a vector, or just empty)
         ensures
             - returns a matrix R such that:
                 - R::type == the same type that was in m
@@ -286,8 +326,8 @@ namespace dlib
         requires
             - cols contains integral elements (e.g. int, long)
             - 0 <= min(cols) && max(cols) < m.nc() 
-            - cols.nr() == 1 || cols.nc() == 1
-              (i.e. cols must be a vector)
+            - cols.nr() == 1 || cols.nc() == 1 || cols.size() == 0
+              (i.e. cols must be a vector, or just empty)
         ensures
             - returns a matrix R such that:
                 - R::type == the same type that was in m

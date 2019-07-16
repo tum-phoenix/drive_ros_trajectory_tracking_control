@@ -10,7 +10,7 @@
 #include "kernel.h"
 #include "kcentroid.h"
 #include <iostream>
-#include "../smart_pointers.h"
+#include <memory>
 
 namespace dlib
 {
@@ -41,6 +41,7 @@ namespace dlib
             max_sv(40),
             lambda_c1(0.0001),
             lambda_c2(0.0001),
+            max_wnorm(100),
             tau(0.01),
             tolerance(0.01),
             train_count(0),
@@ -355,7 +356,7 @@ namespace dlib
             //typedef typename K::sample_type sample_type;
             typedef typename K::mem_manager_type mem_manager_type;
 
-            caching_kernel () : samples(0), counter(0), counter_threshold(0) {}
+            caching_kernel () {}
 
             caching_kernel (
                 const K& kern,
@@ -458,12 +459,12 @@ namespace dlib
                 std::vector<std::pair<long,long> > frequency_of_use;  
             };
 
-            const sample_vector_type* samples;
+            const sample_vector_type* samples = 0;
 
-            shared_ptr<cache_type> cache;
-            mutable unsigned long counter;
-            unsigned long counter_threshold;
-            long cache_size;
+            std::shared_ptr<cache_type> cache;
+            mutable unsigned long counter = 0;
+            unsigned long counter_threshold = 0;
+            long cache_size = 0;
         };
 
     // ------------------------------------------------------------------------------------

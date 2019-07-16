@@ -14,10 +14,21 @@
 #cmakedefine DLIB_NO_GUI_SUPPORT
 #cmakedefine DLIB_ENABLE_STACK_TRACE
 
-// You should also consider telling dlib to link against libjpeg, libpng, fftw, and a BLAS
-// and LAPACK library.  To do this you need to uncomment the following #defines.
+#cmakedefine LAPACK_FORCE_UNDERSCORE
+#cmakedefine LAPACK_FORCE_NOUNDERSCORE
+
+// You should also consider telling dlib to link against libjpeg, libpng, libgif, fftw, CUDA, 
+// and a BLAS and LAPACK library.  To do this you need to uncomment the following #defines.
 #cmakedefine DLIB_JPEG_SUPPORT
 #cmakedefine DLIB_PNG_SUPPORT
+#cmakedefine DLIB_GIF_SUPPORT
 #cmakedefine DLIB_USE_FFTW
 #cmakedefine DLIB_USE_BLAS
 #cmakedefine DLIB_USE_LAPACK
+#cmakedefine DLIB_USE_CUDA
+#cmakedefine DLIB_USE_MKL_FFT
+
+// This variable allows dlib/test_for_odr_violations.h to catch people who mistakenly use
+// headers from one version of dlib with a compiled dlib binary from a different dlib version.
+#cmakedefine DLIB_CHECK_FOR_VERSION_MISMATCH @DLIB_CHECK_FOR_VERSION_MISMATCH@
+

@@ -27,12 +27,8 @@ namespace
 
     dlib::rand rnd;
 
-    void matrix_test (
+    void matrix_test1 (
     )
-    /*!
-        ensures
-            - runs tests on the matrix stuff compliance with the specs
-    !*/
     {        
         typedef memory_manager_stateless<char>::kernel_2_2a MM;
         print_spinner();
@@ -138,6 +134,10 @@ namespace
 
         DLIB_TEST(squared(m4) == pointwise_multiply(m4,m4));
         DLIB_TEST(cubed(m4) == pointwise_multiply(m4,m4,m4));
+        DLIB_TEST(m4 == pointwise_divide(squared(m4),m4));
+        DLIB_TEST(m4 == pointwise_divide(cubed(m4),m4,m4));
+        DLIB_TEST(m4 == pointwise_divide(pointwise_multiply(cubed(m4),m4),m4,m4,m4));
+        DLIB_TEST(squared(m4) == pointwise_divide(cubed(m4),m4));
         DLIB_TEST(pow(matrix_cast<double>(m4),2) == squared(matrix_cast<double>(m4)));
         DLIB_TEST(pow(matrix_cast<double>(m4),3) == cubed(matrix_cast<double>(m4)));
 
@@ -327,7 +327,11 @@ namespace
 
 
         set_all_elements(v,2);
-        v2 =  pointwise_multiply(v, v*2);
+        v2 = pointwise_divide(v*2,v);
+        DLIB_TEST(v == v2);
+        DLIB_TEST(v == tmp(v2));
+
+        v2 = pointwise_multiply(v,v*2);
         set_all_elements(v,8);
         DLIB_TEST(v == v2);
         DLIB_TEST(v == tmp(v2));
@@ -340,6 +344,8 @@ namespace
         m5 = array2;
         DLIB_TEST((m5*2 == pointwise_multiply(m5,uniform_matrix<int,3,3,2>())));
         DLIB_TEST((tmp(m5*2) == tmp(pointwise_multiply(m5,uniform_matrix<int,3,3,2>()))));
+        DLIB_TEST((m5/2 == pointwise_divide(m5,uniform_matrix<int,3,3,2>())));
+        DLIB_TEST((tmp(m5/2) == tmp(pointwise_divide(m5,uniform_matrix<int,3,3,2>()))));
 
         v = tmp(v);
 
@@ -379,23 +385,23 @@ namespace
             u = 2,2.2;
 
             out = 2, 2.2;
-            DLIB_TEST(equal(clamp(x, l, u) , out));
+            DLIB_TEST(equal(dlib::clamp(x, l, u) , out));
             out = 3, 2.2;
-            DLIB_TEST(!equal(clamp(x, l, u) , out));
+            DLIB_TEST(!equal(dlib::clamp(x, l, u) , out));
             out = 2, 4.2;
-            DLIB_TEST(!equal(clamp(x, l, u) , out));
+            DLIB_TEST(!equal(dlib::clamp(x, l, u) , out));
 
             x = 1.5, 1.5;
             out = x;
-            DLIB_TEST(equal(clamp(x, l, u) , out));
+            DLIB_TEST(equal(dlib::clamp(x, l, u) , out));
 
             x = 0.5, 1.5;
             out = 1, 1.5;
-            DLIB_TEST(equal(clamp(x, l, u) , out));
+            DLIB_TEST(equal(dlib::clamp(x, l, u) , out));
 
             x = 1.5, 0.5;
             out = 1.5, 1.0;
-            DLIB_TEST(equal(clamp(x, l, u) , out));
+            DLIB_TEST(equal(dlib::clamp(x, l, u) , out));
 
         }
 
@@ -409,7 +415,7 @@ namespace
         DLIB_TEST(abs(det(dm7) - det(m7)) < 1e-14);
         DLIB_TEST(abs(min(dm7) - min(m7)) < 1e-14);
         DLIB_TEST(abs(max(dm7) - max(m7)) < 1e-14);
-        DLIB_TEST_MSG(abs(sum(dm7) - sum(m7)) < 1e-14,sum(dm7) - sum(m7));
+        DLIB_TEST_MSG(abs(sum(dm7) - sum(m7)) < 1e-13,sum(dm7) - sum(m7));
         DLIB_TEST(abs(prod(dm7) -prod(m7)) < 1e-14);
         DLIB_TEST(equal(diag(dm7) , diag(m7)));
         DLIB_TEST(equal(trans(dm7) , trans(m7)));
@@ -539,10 +545,10 @@ namespace
             set_all_elements(bt1,2);
             set_all_elements(bt2,3);
 
-			float val = trans(bt1)*bt2;
+            float val = trans(bt1)*bt2;
             DLIB_TEST((float)(trans(bt1)*bt2) == 18);
             DLIB_TEST((float)(trans(bt1)*bt2) != 19);
-			DLIB_TEST(val == 18);
+            DLIB_TEST(val == 18);
         }
         {
             matrix<float,3,1> bt1;
@@ -550,10 +556,10 @@ namespace
             set_all_elements(bt1,2);
             set_all_elements(bt2,3);
 
-			float val = trans(bt1)*bt2;
+            float val = trans(bt1)*bt2;
             DLIB_TEST((float)(trans(bt1)*bt2) == 18);
             DLIB_TEST((float)(trans(bt1)*bt2) != 19);
-			DLIB_TEST(val == 18);
+            DLIB_TEST(val == 18);
         }
         {
             matrix<float> bt1(3,1);
@@ -561,10 +567,10 @@ namespace
             set_all_elements(bt1,2);
             set_all_elements(bt2,3);
 
-			float val = trans(bt1)*bt2;
+            float val = trans(bt1)*bt2;
             DLIB_TEST((float)(trans(bt1)*bt2) == 18);
             DLIB_TEST((float)(trans(bt1)*bt2) != 19);
-			DLIB_TEST(val == 18);
+            DLIB_TEST(val == 18);
         }
         {
             matrix<float,3,1> bt1;
@@ -572,10 +578,10 @@ namespace
             set_all_elements(bt1,2);
             set_all_elements(bt2,3);
 
-			float val = trans(bt1)*bt2;
+            float val = trans(bt1)*bt2;
             DLIB_TEST((float)(trans(bt1)*bt2) == 18);
             DLIB_TEST((float)(trans(bt1)*bt2) != 19);
-			DLIB_TEST(val == 18);
+            DLIB_TEST(val == 18);
         }
 
 
@@ -739,6 +745,13 @@ namespace
         }
 
 
+    }
+
+
+    void matrix_test2 (
+    )
+    {        
+        typedef memory_manager_stateless<char>::kernel_2_2a MM;
         {
             srand(423452);
             const long M = 10;
@@ -965,7 +978,8 @@ namespace
             m = val1;
             m2 = val2;
 
-            DLIB_TEST(equal(reciprocal(m) , m2));
+            DLIB_TEST(equal(reciprocal(m),m2));
+            DLIB_TEST(equal(pointwise_multiply(m,m2),pointwise_divide(m,m)));
         }
         {
             matrix<complex<float> > m(2,2), m2(2,2);
@@ -973,7 +987,8 @@ namespace
             m = val1;
             m2 = val2;
 
-            DLIB_TEST(equal(reciprocal(m) , m2));
+            DLIB_TEST(equal(reciprocal(m),m2));
+            DLIB_TEST(equal(pointwise_multiply(m,m2),pointwise_divide(m,m)));
         }
 
         {
@@ -1120,9 +1135,9 @@ namespace
                 m4 = randm(4,4,rnd);
 
                 DLIB_TEST(max(abs(m1*inv(m1) - identity_matrix(m1))) < 1e-13);
-                DLIB_TEST(max(abs(m2*inv(m2) - identity_matrix(m2))) < 1e-13);
+                DLIB_TEST(max(abs(m2*inv(m2) - identity_matrix(m2))) < 1e-12);
                 DLIB_TEST(max(abs(m3*inv(m3) - identity_matrix(m3))) < 1e-13);
-                DLIB_TEST(max(abs(m4*inv(m4) - identity_matrix(m4))) < 1e-13);
+                DLIB_TEST_MSG(max(abs(m4*inv(m4) - identity_matrix(m4))) < 1e-12, max(abs(m4*inv(m4) - identity_matrix(m4))));
             }
         }
 
@@ -1145,7 +1160,8 @@ namespace
         void perform_test (
         )
         {
-            matrix_test();
+            matrix_test1();
+            matrix_test2();
         }
     } a;
 

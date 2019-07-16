@@ -3,12 +3,13 @@
 #ifndef DLIB_JPEG_IMPORT
 #define DLIB_JPEG_IMPORT
 
+#include <vector>
+
 #include "jpeg_loader_abstract.h"
-#include "../smart_pointers.h"
 #include "image_loader.h"
 #include "../pixel.h"
 #include "../dir_nav.h"
-#include <vector>
+#include "../test_for_odr_violations.h"
 
 namespace dlib
 {
@@ -20,9 +21,11 @@ namespace dlib
         jpeg_loader( const char* filename );
         jpeg_loader( const std::string& filename );
         jpeg_loader( const dlib::file& f );
+        jpeg_loader( unsigned char* imgbuffer, size_t buffersize );
 
         bool is_gray() const;
         bool is_rgb() const;
+        bool is_rgba() const;
 
         template<typename T>
         void get_image( T& t_) const
@@ -37,7 +40,6 @@ namespace dlib
             COMPILE_TIME_ASSERT(sizeof(T) == 0);
 #endif
             image_view<T> t(t_);
-
             t.set_size( height_, width_ );
             for ( unsigned n = 0; n < height_;n++ )
             {
@@ -47,6 +49,14 @@ namespace dlib
                     if ( is_gray() )
                     {
                         unsigned char p = v[m];
+                        assign_pixel( t[n][m], p );
+                    }
+                    else if ( is_rgba() ) {
+                        rgb_alpha_pixel p;
+                        p.red = v[m*4];
+                        p.green = v[m*4+1];
+                        p.blue = v[m*4+2];
+                        p.alpha = v[m*4+3];
                         assign_pixel( t[n][m], p );
                     }
                     else // if ( is_rgb() )
@@ -66,8 +76,9 @@ namespace dlib
         {
             return &data[i*width_*output_components_];
         }
-
-        void read_image( const char* filename );
+        
+        FILE * check_file(const char* filename );
+        void read_image( FILE *file, unsigned char* imgbuffer, size_t imgbuffersize );
         unsigned long height_; 
         unsigned long width_;
         unsigned long output_components_;
@@ -85,6 +96,17 @@ namespace dlib
     )
     {
         jpeg_loader(file_name).get_image(image);
+    }
+    template <
+        typename image_type
+        >
+    void load_jpeg (
+        image_type& image,
+        unsigned char* imgbuff,
+        size_t imgbuffsize
+    )
+    {
+        jpeg_loader(imgbuff, imgbuffsize).get_image(image);
     }
 
 // ----------------------------------------------------------------------------------------

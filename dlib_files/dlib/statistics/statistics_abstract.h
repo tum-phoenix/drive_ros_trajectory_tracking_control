@@ -107,6 +107,75 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    double binomial_random_vars_are_different (
+        uint64_t k1,
+        uint64_t n1,
+        uint64_t k2,
+        uint64_t n2
+    );
+    /*!
+        requires
+            - k1 <= n1
+            - k2 <= n2
+        ensures
+            - Given two binomially distributed random variables, X1 and X2, we want to know
+              if these variables have the same parameter (i.e. the chance of "success").
+              So assume that:
+                - You observed X1 to give k1 successes out of n1 trials.
+                - You observed X2 to give k2 successes out of n2 trials.
+            - This function performs a simple likelihood ratio test to determine if X1 and
+              X2 have the same parameter.  The return value of this function will be:
+                - Close to 0 if they are probably the same.
+                - Larger than 0 if X1 probably has a higher "success" rate than X2. 
+                - Smaller than 0 if X2 probably has a higher "success" rate than X1. 
+              Moreover, the larger the absolute magnitude of the return value the more
+              likely it is that X1 and X2 have different distributions.
+            - For a discussion of the technique and applications see:
+                  Dunning, Ted. "Accurate methods for the statistics of surprise and
+                  coincidence." Computational linguistics 19.1 (1993): 61-74.
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    double event_correlation (
+        uint64_t A_count,
+        uint64_t B_count,
+        uint64_t AB_count,
+        uint64_t total_num_observations
+    );
+    /*!
+        requires
+            - AB_count <= A_count <= total_num_observations
+            - AB_count <= B_count <= total_num_observations
+            - A_count + B_count - AB_count <= total_num_observations
+        ensures
+            - This function does a statistical test to determine if two events co-occur in
+              a statistically significant way.  In particular, we assume you performed
+              total_num_observations measurements and during those measurements you:
+                - Observed event A to happen A_count times.
+                - Observed event B to happen B_count times.
+                - Observed AB_count co-occurrences of the events.  That is, AB_count is the
+                  number of times the events happened together during the same measurement.
+            - This function returns a number, COR, which can take any real value.  It has
+              the following interpretations:
+                - COR == 0: there is no evidence of correlation between the two events.
+                  They appear to be unrelated.
+                - COR > 0: There is evidence that A and B co-occur together.  That is,
+                  they happen at the same times more often than you would expect if they
+                  were independent events.  The larger the magnitude of COR the more
+                  evidence we have for the correlation.
+                - COR < 0: There is evidence that A and B are anti-correlated.  That is,
+                  when A happens B is unlikely to happen and vise versa.  The larger the
+                  magnitude of COR the more evidence we have for the anti-correlation.
+            - This function implements the simple likelihood ratio test discussed in the
+              following paper:
+                  Dunning, Ted. "Accurate methods for the statistics of surprise and
+                  coincidence." Computational linguistics 19.1 (1993): 61-74.
+              So for an extended discussion of the method see the above paper.
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
     template <
         typename T
         >
@@ -413,6 +482,262 @@ namespace dlib
                   rhs.add() had instead been done to R.
         !*/
     };
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename T
+        >
+    class running_scalar_covariance_decayed
+    {
+        /*!
+            REQUIREMENTS ON T
+                - T must be a float, double, or long double type
+
+            INITIAL VALUE
+                - mean_x() == 0
+                - mean_y() == 0
+                - current_n() == 0
+
+            WHAT THIS OBJECT REPRESENTS
+                This object represents something that can compute the running covariance of
+                a stream of real number pairs.  It is essentially the same as
+                running_scalar_covariance except that it forgets about data it has seen
+                after a certain period of time.  It does this by exponentially decaying old
+                statistics. 
+        !*/
+
+    public:
+
+        running_scalar_covariance_decayed(
+            T decay_halflife = 1000 
+        );
+        /*!
+            requires
+                - decay_halflife > 0
+            ensures
+                - #forget_factor() == std::pow(0.5, 1/decay_halflife);
+                  (i.e. after decay_halflife calls to add() the data given to the first add
+                  will be down weighted by 0.5 in the statistics stored in this object). 
+        !*/
+
+        T forget_factor (
+        ) const;
+        /*!
+            ensures
+                - returns the exponential forget factor used to forget old statistics when
+                  add() is called.
+        !*/
+
+        void add (
+            const T& x,
+            const T& y
+        );
+        /*!
+            ensures
+                - updates the statistics stored in this object so that
+                  the new pair (x,y) is factored into them.
+                - #current_n() == current_n()*forget_factor() + forget_factor()
+                - Down weights old statistics by a factor of forget_factor().
+        !*/
+
+        T current_n (
+        ) const;
+        /*!
+            ensures
+                - returns the effective number of points given to this object.   As add()
+                  is called this value will converge to a constant, the value of which is
+                  based on the decay_halflife supplied to the constructor.
+        !*/
+
+        T mean_x (
+        ) const;
+        /*!
+            ensures
+                - returns the mean value of all x samples presented to this object
+                  via add().
+        !*/
+
+        T mean_y (
+        ) const;
+        /*!
+            ensures
+                - returns the mean value of all y samples presented to this object
+                  via add().
+        !*/
+
+        T covariance (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the covariance between all the x and y samples presented
+                  to this object via add()
+        !*/
+
+        T correlation (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the correlation coefficient between all the x and y samples 
+                  presented to this object via add()
+        !*/
+
+        T variance_x (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample variance value of all x samples presented 
+                  to this object via add().
+        !*/
+
+        T variance_y (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample variance value of all y samples presented 
+                  to this object via add().
+        !*/
+
+        T stddev_x (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample standard deviation of all x samples
+                  presented to this object via add().
+        !*/
+
+        T stddev_y (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample standard deviation of all y samples
+                  presented to this object via add().
+        !*/
+    };
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename T
+        >
+    class running_stats_decayed
+    {
+        /*!
+            REQUIREMENTS ON T
+                - T must be a float, double, or long double type
+
+            INITIAL VALUE
+                - mean() == 0
+                - current_n() == 0
+
+            WHAT THIS OBJECT REPRESENTS
+                This object represents something that can compute the running mean and
+                variance of a stream of real numbers.  It is similar to running_stats
+                except that it forgets about data it has seen after a certain period of
+                time.  It does this by exponentially decaying old statistics. 
+        !*/
+
+    public:
+
+        running_stats_decayed(
+            T decay_halflife = 1000 
+        );
+        /*!
+            requires
+                - decay_halflife > 0
+            ensures
+                - #forget_factor() == std::pow(0.5, 1/decay_halflife);
+                  (i.e. after decay_halflife calls to add() the data given to the first add
+                  will be down weighted by 0.5 in the statistics stored in this object). 
+        !*/
+
+        T forget_factor (
+        ) const;
+        /*!
+            ensures
+                - returns the exponential forget factor used to forget old statistics when
+                  add() is called.
+        !*/
+
+        void add (
+            const T& x
+        );
+        /*!
+            ensures
+                - updates the statistics stored in this object so that x is factored into
+                  them.
+                - #current_n() == current_n()*forget_factor() + forget_factor()
+                - Down weights old statistics by a factor of forget_factor().
+        !*/
+
+        T current_n (
+        ) const;
+        /*!
+            ensures
+                - returns the effective number of points given to this object.   As add()
+                  is called this value will converge to a constant, the value of which is
+                  based on the decay_halflife supplied to the constructor.
+        !*/
+
+        T mean (
+        ) const;
+        /*!
+            ensures
+                - returns the mean value of all x samples presented to this object
+                  via add().
+        !*/
+
+        T variance (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample variance value of all x samples presented to this
+                  object via add().
+        !*/
+
+        T stddev (
+        ) const;
+        /*!
+            requires
+                - current_n() > 1
+            ensures
+                - returns the sample standard deviation of all x samples presented to this
+                  object via add().
+        !*/
+
+    };
+
+    template <typename T>
+    void serialize (
+        const running_stats_decayed<T>& item, 
+        std::ostream& out 
+    );
+    /*!
+        provides serialization support 
+    !*/
+
+    template <typename T>
+    void deserialize (
+        running_stats_decayed<T>& item, 
+        std::istream& in
+    );
+    /*!
+        provides serialization support 
+    !*/
 
 // ----------------------------------------------------------------------------------------
 

@@ -4,40 +4,37 @@
 #define DLIB_SERIALIZE_PiCKLE_Hh_
 
 #include <dlib/serialize.h>
-#include <boost/python.hpp>
+#include <pybind11/pybind11.h>
 #include <sstream>
 #include <dlib/vectorstream.h>
 
-template <typename T>
-struct serialize_pickle : boost::python::pickle_suite
+namespace py = pybind11;
+
+namespace dlib
 {
-    static boost::python::tuple getstate(
-        const T& item 
-    )
+
+    template<typename T>
+    py::tuple getstate(const T& item)
     {
         using namespace dlib;
         std::vector<char> buf;
         buf.reserve(5000);
         vectorstream sout(buf);
         serialize(item, sout);
-        return boost::python::make_tuple(boost::python::handle<>(
+        return py::make_tuple(py::handle(
                 PyBytes_FromStringAndSize(buf.size()?&buf[0]:0, buf.size())));
     }
 
-    static void setstate(
-        T& item, 
-        boost::python::tuple state
-    )
+    template<typename T>
+    T setstate(py::tuple state)
     {
         using namespace dlib;
-        using namespace boost::python;
         if (len(state) != 1)
         {
             PyErr_SetObject(PyExc_ValueError,
-                ("expected 1-item tuple in call to __setstate__; got %s"
-                 % state).ptr()
+                py::str("expected 1-item tuple in call to __setstate__; got {}").format(state).ptr()
             );
-            throw_error_already_set();
+            throw py::error_already_set();
         }
 
         // We used to serialize by converting to a str but the boost.python routines for
@@ -45,16 +42,18 @@ struct serialize_pickle : boost::python::pickle_suite
         // UTF-8 encodings.  So instead we access the python C interface directly and use
         // bytes objects.  However, we keep the deserialization code that worked with str
         // for backwards compatibility with previously pickled files.
-        if (extract<str>(state[0]).check())
+        T item;
+        py::object obj = state[0];
+        if (py::isinstance<py::str>(obj))
         {
-            str data = extract<str>(state[0]);
-            std::string temp(extract<const char*>(data), len(data));
+            py::str data = state[0].cast<py::str>();
+            std::string temp = data;
             std::istringstream sin(temp);
             deserialize(item, sin);
         }
-        else if(PyBytes_Check(object(state[0]).ptr()))
+        else if(PyBytes_Check(py::object(state[0]).ptr()))
         {
-            object obj = state[0];
+            py::object obj = state[0];
             char* data = PyBytes_AsString(obj.ptr());
             unsigned long num = PyBytes_Size(obj.ptr());
             std::istringstream sin(std::string(data, num));
@@ -64,8 +63,11 @@ struct serialize_pickle : boost::python::pickle_suite
         {
             throw error("Unable to unpickle, error in input file.");
         }
+
+        return item;
     }
-};
+
+}
 
 #endif // DLIB_SERIALIZE_PiCKLE_Hh_
 

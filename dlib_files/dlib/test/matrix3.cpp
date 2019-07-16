@@ -596,7 +596,8 @@ namespace
             c_check_equal( tmp(c_temp + conj(c_rv4)*c_cv4), c_temp + conj(c_rv4)*c_cv4);
             c_check_equal( tmp(c_temp + trans(conj(c_cv4))*trans(c_rv4)), c_temp + trans(conj(c_cv4))*trans(c_rv4));
 
-            DLIB_TEST(abs((static_cast<complex<type> >(c_rv4*c_cv4) + i) - ((c_rv4*c_cv4)(0) + i)) < std::sqrt(std::numeric_limits<type>::epsilon())*eps_mul );
+            complex<type> tmp = c_rv4*c_cv4;
+            DLIB_TEST(abs((tmp + i) - ((c_rv4*c_cv4)(0) + i)) < std::sqrt(std::numeric_limits<type>::epsilon())*eps_mul );
             DLIB_TEST(max(abs((rv4*cv4 + 1.0) - ((rv4*cv4)(0) + 1.0))) < std::sqrt(std::numeric_limits<type>::epsilon())*eps_mul);
 
         }
@@ -831,9 +832,9 @@ namespace
             DLIB_TEST(join_rows(a,a) == b);
             DLIB_TEST(join_rows(a,abs(a)) == b);
             DLIB_TEST(join_cols(trans(a), trans(a)) == trans(b));
-            DLIB_TEST(join_cols(a,a) == c)
-            DLIB_TEST(join_cols(a,abs(a)) == c)
-            DLIB_TEST(join_rows(trans(a),trans(a)) == trans(c))
+            DLIB_TEST(join_cols(a,a) == c);
+            DLIB_TEST(join_cols(a,abs(a)) == c);
+            DLIB_TEST(join_rows(trans(a),trans(a)) == trans(c));
         }
 
         {
@@ -855,9 +856,9 @@ namespace
             DLIB_TEST(join_rows(a,a) == b);
             DLIB_TEST(join_rows(a,abs(a)) == b);
             DLIB_TEST(join_cols(trans(a), trans(a)) == trans(b));
-            DLIB_TEST(join_cols(a,a) == c)
-            DLIB_TEST(join_cols(a,abs(a)) == c)
-            DLIB_TEST(join_rows(trans(a),trans(a)) == trans(c))
+            DLIB_TEST(join_cols(a,a) == c);
+            DLIB_TEST(join_cols(a,abs(a)) == c);
+            DLIB_TEST(join_rows(trans(a),trans(a)) == trans(c));
         }
 
         {
@@ -882,9 +883,9 @@ namespace
             DLIB_TEST(join_rows(a,a2) == b);
             DLIB_TEST(join_rows(a2,a) == b);
             DLIB_TEST(join_cols(trans(a2), trans(a)) == trans(b));
-            DLIB_TEST(join_cols(a2,a) == c)
-            DLIB_TEST(join_cols(a,a2) == c)
-            DLIB_TEST(join_rows(trans(a2),trans(a)) == trans(c))
+            DLIB_TEST(join_cols(a2,a) == c);
+            DLIB_TEST(join_cols(a,a2) == c);
+            DLIB_TEST(join_rows(trans(a2),trans(a)) == trans(c));
         }
 
         {

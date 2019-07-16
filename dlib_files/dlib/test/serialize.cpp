@@ -616,6 +616,35 @@ namespace
         DLIB_TEST(c.size() == 0);
     }
 
+    void test_std_array (
+    )
+    {
+        std::array<int,5> a, b;
+
+        a = {1, 2, 3, 4, 5};
+
+        ostringstream sout;
+        dlib::serialize(a, sout);
+        istringstream sin(sout.str());
+
+        dlib::deserialize(b, sin);
+
+
+        DLIB_TEST(a.size() == b.size());
+        DLIB_TEST(a.size() == 5);
+        for (unsigned long i = 0; i < a.size(); ++i)
+        {
+            DLIB_TEST(a[i] == b[i]);
+        }
+
+        std::array<int,0> aa, bb;
+        sout.str("");
+        dlib::serialize(aa, sout);
+        sin.str(sout.str());
+        dlib::deserialize(bb, sin);
+        DLIB_TEST(bb.size() == 0);
+    }
+
     void test_vector_bool (
     )
     {
@@ -991,6 +1020,34 @@ namespace
         DLIB_TEST(buf2[3] == 0);
         DLIB_TEST(buf2[4] == 3);
         DLIB_TEST(buf2[5] == 3);
+
+
+
+        // make sure ramdump() overloads compile and work.
+        {
+            matrix<double,2,2> a = {1,2,3,4};
+            const matrix<double,2,2> b = {3,2,3,4};
+            dlib::serialize("ramdump_mat.dat") << ramdump(a) << ramdump(b);
+            matrix<double,2,2> A, B;
+            dlib::deserialize("ramdump_mat.dat") >> ramdump(A) >> ramdump(B);
+
+            DLIB_TEST(A == a);
+            DLIB_TEST(B == b);
+            A = 0;
+            B = 0;
+            DLIB_TEST(A != a);
+            DLIB_TEST(B != b);
+
+            ostringstream sout;
+            dlib::serialize(ramdump(a), sout);
+            dlib::serialize(ramdump(b), sout);
+            istringstream sin(sout.str());
+            dlib::deserialize(ramdump(A), sin);
+            dlib::deserialize(ramdump(B), sin);
+
+            DLIB_TEST(A == a);
+            DLIB_TEST(B == b);
+        }
     }
 
 // ----------------------------------------------------------------------------------------
@@ -1020,6 +1077,7 @@ namespace
             test_vector_bool();
             test_array2d_and_matrix_serialization();
             test_strings();
+            test_std_array();
         }
     } a;
 

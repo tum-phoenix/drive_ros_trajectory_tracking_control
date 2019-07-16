@@ -44,7 +44,7 @@ namespace dlib
                 - singular values less than max(m.nr(),m.nc()) times the machine epsilon 
                   times the largest singular value are ignored.  
             - else
-                - singular values less than tol are ignored.
+                - singular values less than tol*max(singular value in m) are ignored.
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -247,6 +247,21 @@ namespace dlib
               Moreover, q is the number of subspace iterations performed.  Larger
               values of q might increase the accuracy of the solution but the default
               value should be good for many problems.
+    !*/
+
+    template <
+        typename sparse_vector_type, 
+        typename T
+        >
+    void svd_fast (
+        const std::vector<sparse_vector_type>& A,
+        matrix<T>& w,
+        matrix<T>& v,
+        unsigned long l,
+        unsigned long q = 1
+    );
+    /*!
+        This function is identical to the above svd_fast() except it doesn't compute u.
     !*/
 
 // ----------------------------------------------------------------------------------------

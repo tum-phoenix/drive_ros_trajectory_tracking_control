@@ -1,12 +1,37 @@
 // Copyright (C) 2003  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
+
+#ifdef DLIB_ALL_SOURCE_END
+#include "dlib_basic_cpp_build_tutorial.txt"
+#endif
+
 #ifndef DLIB_ALGs_
 #define DLIB_ALGs_
 
 // this file contains miscellaneous stuff                      
 
+// Give people who forget the -std=c++11 option a reminder
+#if (defined(__GNUC__) && ((__GNUC__ >= 4 && __GNUC_MINOR__ >= 8) || (__GNUC__ > 4))) || \
+    (defined(__clang__) && ((__clang_major__ >= 3 && __clang_minor__ >= 4) || (__clang_major__ >= 3)))
+    #if __cplusplus < 201103
+        #error "Dlib requires C++11 support.  Give your compiler the -std=c++11 option to enable it."
+    #endif
+#endif
+
+#if defined __NVCC__
+    // Disable the "statement is unreachable" message since it will go off on code that is
+    // actually reachable but just happens to not be reachable sometimes during certain
+    // template instantiations.
+    #pragma diag_suppress code_is_unreachable
+#endif
+
 
 #ifdef _MSC_VER
+
+#if  _MSC_VER < 1900
+#error "dlib versions newer than v19.1 use C++11 and therefore require Visual Studio 2015 or newer."
+#endif
+
 // Disable the following warnings for Visual Studio
 
 // this is to disable the "'this' : used in base member initializer list"
@@ -46,6 +71,13 @@
 // Disable "warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)"
 #pragma warning(disable : 4290)
 
+
+// DNN module uses template-based network declaration that leads to very long
+// type names. Visual Studio will produce Warning C4503 in such cases. https://msdn.microsoft.com/en-us/library/074af4b6.aspx says
+// that correct binaries are still produced even when this warning happens, but linker errors from visual studio, if they occurr could be confusing.
+#pragma warning( disable: 4503 )
+
+
 #endif
 
 #ifdef __BORLANDC__
@@ -74,6 +106,7 @@ namespace std
 #include <algorithm>    // for std::swap
 #include <new>          // for std::bad_alloc
 #include <cstdlib>
+#include <stddef.h>
 #include <limits> // for std::numeric_limits for is_finite()
 #include "assert.h"
 #include "error.h"
@@ -278,7 +311,7 @@ namespace dlib
             typename A,
             typename B
             >
-        bool operator> (
+        constexpr bool operator> (
             const A& a,
             const B& b
         ) { return b < a; }
@@ -289,7 +322,7 @@ namespace dlib
             typename A,
             typename B
             >
-        bool operator!= (
+        constexpr bool operator!= (
             const A& a,
             const B& b
         ) { return !(a == b); }
@@ -300,7 +333,7 @@ namespace dlib
             typename A,
             typename B
             >
-        bool operator<= (
+        constexpr bool operator<= (
             const A& a,
             const B& b
         ) { return !(b < a); }
@@ -311,7 +344,7 @@ namespace dlib
             typename A,
             typename B
             >
-        bool operator>= (
+        constexpr bool operator>= (
             const A& a,
             const B& b
         ) { return !(a < b); }
@@ -482,6 +515,13 @@ namespace dlib
     };
 
 // ----------------------------------------------------------------------------------------
+
+    struct general_ {};
+    struct special_ : general_ {};
+    template<typename> struct int_ { typedef int type; };
+
+// ----------------------------------------------------------------------------------------
+
 
     /*!A is_same_object 
 
@@ -762,10 +802,10 @@ namespace dlib
             abs<4>::value == 4
     !*/
 
-        template <long x, typename enabled=void>
-        struct tabs { const static long value = x; };
-        template <long x>
-        struct tabs<x,typename enable_if_c<(x < 0)>::type> { const static long value = -x; };
+    template <long x, typename enabled=void>
+    struct tabs { const static long value = x; };
+    template <long x>
+    struct tabs<x,typename enable_if_c<(x < 0)>::type> { const static long value = -x; };
 
 // ----------------------------------------------------------------------------------------
 
@@ -777,10 +817,10 @@ namespace dlib
             abs<4,7>::value == 7
     !*/
 
-        template <long x, long y, typename enabled=void>
-        struct tmax { const static long value = x; };
-        template <long x, long y>
-        struct tmax<x,y,typename enable_if_c<(y > x)>::type> { const static long value = y; };
+    template <long x, long y, typename enabled=void>
+    struct tmax { const static long value = x; };
+    template <long x, long y>
+    struct tmax<x,y,typename enable_if_c<(y > x)>::type> { const static long value = y; };
 
 // ----------------------------------------------------------------------------------------
 
@@ -792,12 +832,12 @@ namespace dlib
             abs<4,7>::value == 4
     !*/
 
-        template <long x, long y, typename enabled=void>
-        struct tmin { const static long value = x; };
-        template <long x, long y>
-        struct tmin<x,y,typename enable_if_c<(y < x)>::type> { const static long value = y; };
+    template <long x, long y, typename enabled=void>
+    struct tmin { const static long value = x; };
+    template <long x, long y>
+    struct tmin<x,y,typename enable_if_c<(y < x)>::type> { const static long value = y; };
 
-    // ----------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------
 
 #define DLIB_MAKE_HAS_MEMBER_FUNCTION_TEST(testname, returnT, funct_name, args)                        \
     struct _two_bytes_##testname { char a[2]; };                                                       \
@@ -1027,6 +1067,88 @@ namespace dlib
         // warnings from gcc about violations of strict-aliasing rules.
         void* const data; 
     };
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename T, 
+        typename F
+        >
+    auto max_scoring_element(
+        const T& container,
+        F score_func
+    ) -> decltype(std::make_pair(*container.begin(), 0.0))
+    /*!
+        requires
+            - container has .begin() and .end(), allowing it to be enumerated.
+            - score_func() is a function that takes an element of the container and returns a double.
+        ensures
+            - This function finds the element of container that has the largest score,
+              according to score_func(), and returns a std::pair containing that maximal
+              element along with the score.
+            - If the container is empty then make_pair(a default initialized object, -infinity) is returned.
+    !*/
+    {
+        double best_score = -std::numeric_limits<double>::infinity();
+        auto best_i = container.begin();
+        for (auto i = container.begin(); i != container.end(); ++i)
+        {
+            auto score = score_func(*i);
+            if (score > best_score)
+            {
+                best_score = score;
+                best_i = i;
+            }
+        }
+
+        using item_type = typename std::remove_reference<decltype(*best_i)>::type;
+
+        if (best_i == container.end())
+            return std::make_pair(item_type(), best_score);
+        else
+            return std::make_pair(*best_i, best_score);
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename T, 
+        typename F
+        >
+    auto min_scoring_element(
+        const T& container, 
+        F score_func
+    ) -> decltype(std::make_pair(*container.begin(), 0.0))
+    /*!
+        requires
+            - container has .begin() and .end(), allowing it to be enumerated.
+            - score_func() is a function that takes an element of the container and returns a double.
+        ensures
+            - This function finds the element of container that has the smallest score,
+              according to score_func(), and returns a std::pair containing that minimal
+              element along with the score.
+            - If the container is empty then make_pair(a default initialized object, infinity) is returned.
+    !*/
+    {
+        double best_score = std::numeric_limits<double>::infinity();
+        auto best_i = container.begin();
+        for (auto i = container.begin(); i != container.end(); ++i)
+        {
+            auto score = score_func(*i);
+            if (score < best_score)
+            {
+                best_score = score;
+                best_i = i;
+            }
+        }
+
+        using item_type = typename std::remove_reference<decltype(*best_i)>::type;
+
+        if (best_i == container.end())
+            return std::make_pair(item_type(), best_score);
+        else
+            return std::make_pair(*best_i, best_score);
+    }
 
 // ----------------------------------------------------------------------------------------
 

@@ -21,15 +21,15 @@ namespace dlib
 
             extern "C"
             {
-                void DLIB_FORTRAN_ID(dgees) (char *jobvs, char *sort, L_fp select, integer *n, 
-                                             double *a, integer *lda, integer *sdim, double *wr, 
-                                             double *wi, double *vs, integer *ldvs, double *work, 
-                                             integer *lwork, logical *bwork, integer *info);
+                void DLIB_FORTRAN_ID(dgees) (const char *jobvs, const char *sort, const L_fp select, const integer *n, 
+                                             double *a, const integer *lda, integer *sdim, double *wr, 
+                                             double *wi, double *vs, const integer *ldvs, double *work, 
+                                             const integer *lwork, logical *bwork, integer *info);
 
-                void DLIB_FORTRAN_ID(sgees) (char *jobvs, char *sort, L_fp select, integer *n, 
-                                             float *a, integer *lda, integer *sdim, float *wr, 
-                                             float *wi, float *vs, integer *ldvs, float *work, 
-                                             integer *lwork, logical *bwork, integer *info);
+                void DLIB_FORTRAN_ID(sgees) (const char *jobvs, const char *sort, const L_fp select, const integer *n, 
+                                             float *a, const integer *lda, integer *sdim, float *wr, 
+                                             float *wi, float *vs, const integer *ldvs, float *work, 
+                                             const integer *lwork, logical *bwork, integer *info);
 
             }
 
@@ -42,12 +42,12 @@ namespace dlib
                 integer info = 0;
                 char sort = 'N';
                 L_fp fnil = 0;
-                logical nil = 0;
+                logical bwork = 0;
                 integer sdim = 0;
                 DLIB_FORTRAN_ID(dgees)(&jobvs, &sort, fnil, &n,
                                        a, &lda, &sdim, wr,
                                        wi, vs, &ldvs, work,
-                                       &lwork, &nil, &info);
+                                       &lwork, &bwork, &info);
                 return info;
             }
 
@@ -61,12 +61,12 @@ namespace dlib
                 integer info = 0;
                 char sort = 'N';
                 L_fp fnil = 0;
-                logical nil = 0;
+                logical bwork = 0;
                 integer sdim = 0;
                 DLIB_FORTRAN_ID(sgees)(&jobvs, &sort, fnil, &n,
                                        a, &lda, &sdim, wr,
                                        wi, vs, &ldvs, work,
-                                       &lwork, &nil, &info);
+                                       &lwork, &bwork, &info);
                 return info;
             }
 

@@ -363,6 +363,16 @@ namespace dlib
             ensures
                 - returns !(*this == rect)
         !*/
+
+        bool operator< (
+            const dlib::rectangle& a,
+            const dlib::rectangle& b
+        ) const;
+        /*!
+            ensures
+                - Defines a total ordering over rectangles so they can be used in
+                  associative containers.
+        !*/
     };
 
 // ----------------------------------------------------------------------------------------
@@ -444,6 +454,20 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    inline std::vector<rectangle> centered_rects (
+        const std::vector<point>& pts,
+        unsigned long width,
+        unsigned long height
+    );
+    /*!
+        ensures
+            - returns an array ARR where:
+                - #ARR.size() == pts.size()
+                - #ARR[i] == centered_rect(pts[i], width, height)
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
     const rectangle centered_rect (
         long x,
         long y,
@@ -475,6 +499,23 @@ namespace dlib
             - returns centered_rect( (rect.tl_corner() + rect.br_corner())/2, width, height)
               (i.e. returns a rectangle centered on rect but with the given width
               and height)
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    inline rectangle set_rect_area (
+        const rectangle& rect,
+        unsigned long area
+    );
+    /*!
+        requires
+            - area > 0
+        ensures
+            - Returns a rectangle R such that:
+                - center(R) == center(rect)
+                - R has the same aspect ratio as rect.  If rect.area() == 0 then the
+                  returned rect has a 1:1 aspect ratio.
+                - R.area() == area
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -566,6 +607,20 @@ namespace dlib
         ensures
             - return shrink_rect(rect, -width, -height)
               (i.e. grows the given rectangle by expanding its border)
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    const rectangle scale_rect (
+        const rectangle& rect,
+        double scale
+    );
+    /*!
+        requires
+            - scale > 0
+        ensures
+            - return rectangle(rect.left() * scale, rect.top() * scale, rect.right() * scale, rect.bottom() * scale)
+              (i.e. resizes the given rectangle by multiplying all side coordinates with a scale factor)
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -682,9 +737,10 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-    inline const point nearest_point (
+    template <typename T>
+    inline const dlib::vector<T,2> nearest_point (
         const rectangle& rect,
-        const point& p
+        const dlib::vector<T,2>& p
     );
     /*!
         ensures
@@ -692,6 +748,22 @@ namespace dlib
                 - returns p
             - else
                 - returns the point in rect that is closest to p
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    inline size_t nearest_rect (
+        const std::vector<rectangle>& rects,
+        const point& p
+    );
+    /*!
+        requires
+            - rects.size() > 0
+        ensures
+            - returns the index of the rectangle that is closest to the point p.  In
+              particular, this function returns an IDX such that:
+                length(nearest_point(rects[IDX],p) - p)
+              is minimized.
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -707,25 +779,11 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-    template <typename T, typename U>
-    double distance_to_line (
-        const std::pair<vector<T,2>,vector<T,2> >& line,
-        const vector<U,2>& p
-    );
-    /*!
-        ensures
-            - returns the euclidean distance between the given line and the point p.  That
-              is, given a line that passes though the points line.first and line.second,
-              what is the distance between p and the nearest point on the line?  This
-              function returns that distance.
-    !*/
-
-// ----------------------------------------------------------------------------------------
-
+    template <typename T>
     void clip_line_to_rectangle (
         const rectangle& box,
-        point& p1,
-        point& p2
+        dlib::vector<T,2>& p1,
+        dlib::vector<T,2>& p2
     );
     /*!
         ensures
@@ -787,29 +845,6 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-}
-
-namespace std
-{
-    /*!
-        Define std::less<rectangle> so that you can use rectangles in the associative containers.
-    !*/
-    template<>
-    struct less<dlib::rectangle> : public binary_function<dlib::rectangle,dlib::rectangle,bool>
-    {
-        inline bool operator() (const dlib::rectangle& a, const dlib::rectangle& b) const
-        { 
-            if      (a.left() < b.left()) return true;
-            else if (a.left() > b.left()) return false;
-            else if (a.top() < b.top()) return true;
-            else if (a.top() > b.top()) return false;
-            else if (a.right() < b.right()) return true;
-            else if (a.right() > b.right()) return false;
-            else if (a.bottom() < b.bottom()) return true;
-            else if (a.bottom() > b.bottom()) return false;
-            else                    return false;
-        }
-    };
 }
 
 #endif // DLIB_RECTANGLe_ABSTRACT_

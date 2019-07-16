@@ -66,7 +66,7 @@ namespace dlib
         typedef T type;
 
         explicit pipe (  
-            unsigned long maximum_size
+            size_t maximum_size
         );
 
         virtual ~pipe (
@@ -109,15 +109,19 @@ namespace dlib
         bool is_enabled (
         ) const;
 
-        unsigned long max_size (
+        size_t max_size (
         ) const;
 
-        unsigned long size (
+        size_t size (
         ) const;
 
         bool enqueue (
             T& item
         );
+
+        bool enqueue (
+            T&& item
+        ) { return enqueue(item); }
 
         bool dequeue (
             T& item
@@ -128,6 +132,11 @@ namespace dlib
             unsigned long timeout
         );
 
+        bool enqueue_or_timeout (
+            T&& item,
+            unsigned long timeout
+        ) { return enqueue_or_timeout(item,timeout); }
+
         bool dequeue_or_timeout (
             T& item,
             unsigned long timeout
@@ -135,14 +144,14 @@ namespace dlib
 
     private:
 
-        unsigned long pipe_size;
-        const unsigned long pipe_max_size;
+        size_t pipe_size;
+        const size_t pipe_max_size;
         bool enabled;
 
         T* const data;
 
-        unsigned long first;
-        unsigned long last;
+        size_t first;
+        size_t last;
 
         mutex m;
         signaler dequeue_sig;
@@ -172,7 +181,7 @@ namespace dlib
         >
     pipe<T>::
     pipe (  
-        unsigned long maximum_size
+        size_t maximum_size
     ) : 
         pipe_size(0),
         pipe_max_size(maximum_size),
@@ -304,7 +313,7 @@ namespace dlib
     template <
         typename T
         >
-    unsigned long pipe<T>::
+    size_t pipe<T>::
     max_size (
     ) const
     {
@@ -317,7 +326,7 @@ namespace dlib
     template <
         typename T
         >
-    unsigned long pipe<T>::
+    size_t pipe<T>::
     size (
     ) const
     {

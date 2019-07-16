@@ -62,6 +62,8 @@
         - std::string
         - std::wstring
         - std::vector
+        - std::array
+        - std::deque
         - std::map
         - std::set
         - std::pair
@@ -79,6 +81,8 @@
         - std::string
         - std::wstring
         - std::vector
+        - std::array
+        - std::deque
         - std::map
         - std::set
         - std::pair
@@ -95,7 +99,7 @@
     Note that you can deserialize an integer value to any integral type (except for a 
     char type) if its value will fit into the target integer type.  I.e.  the types 
     short, int, long, unsigned short, unsigned int, unsigned long, and dlib::uint64 
-    can all receive serialized data from each other so long as the actual serizlied 
+    can all receive serialized data from each other so long as the actual serialized 
     value fits within the receiving integral type's range.
 
     Also note that for any container to be serializable the type of object it contains 
@@ -143,10 +147,15 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <array>
+#include <deque>
 #include <complex>
 #include <map>
+#include <memory>
 #include <set>
 #include <limits>
+#include <type_traits>
+#include <utility>
 #include "uintn.h"
 #include "interfaces/enumerable.h"
 #include "interfaces/map_pair.h"
@@ -154,7 +163,6 @@
 #include "unicode.h"
 #include "byte_orderer.h"
 #include "float_details.h"
-#include "smart_pointers/shared_ptr.h"
 
 namespace dlib
 {
@@ -163,9 +171,80 @@ namespace dlib
 
     class serialization_error : public error 
     {
+        /*!
+            WHAT THIS OBJECT REPRESENTS
+                This is the exception object.  It is thrown if serialization or
+                deserialization fails.
+        !*/
+
     public: 
         serialization_error(const std::string& e):error(e) {}
     };
+
+
+    void check_serialized_version(
+        const std::string& expected_version, 
+        std::istream& in
+    );
+    /*!
+        ensures
+            - Deserializes a string from in and if it doesn't match expected_version we
+              throw serialization_error.
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    /*!A ramdump information !*/
+    template <typename T>
+    struct ramdump_t
+    {
+        /*!
+            WHAT THIS OBJECT REPRESENTS
+                This is a type decoration used to indicate that serialization should be
+                done by simply dumping the memory of some object to disk as fast as
+                possible without any sort of conversions.  This means that the data written
+                will be "non-portable" in the sense that the format output by a RAM dump
+                may depend on things like the endianness of your CPU or settings of certain
+                compiler switches.
+
+                You use this object like this:
+                   serialize("yourfile.dat") << ramdump(yourobject);
+                   deserialize("yourfile.dat") >> ramdump(yourobject);
+                or 
+                   serialize(ramdump(yourobject), out);
+                   deserialize(ramdump(yourobject), in);
+
+                Also, not all objects have a ramdump mode.  If you try to use ramdump on an
+                object that does not define a serialization dump for ramdump you will get a
+                compiler error.
+        !*/
+        ramdump_t(T& item_) : item(item_) {}
+        T& item;
+    };
+
+    // This function just makes a ramdump that wraps an object.
+    template <typename T>
+    ramdump_t<typename std::remove_reference<T>::type> ramdump(T&& item) 
+    { 
+        return ramdump_t<typename std::remove_reference<T>::type>(item); 
+    }
+
+
+    template <
+        typename T
+        >
+    void serialize (
+        const ramdump_t<const T>& item_, 
+        std::ostream& out
+    )
+    {
+        // Move the const from inside the ramdump_t template to outside so we can bind
+        // against a serialize() call that takes just a const ramdump_t<T>.  Doing this
+        // saves you from needing to write multiple overloads of serialize() to handle
+        // these different const placement cases.
+        const auto temp = ramdump(const_cast<T&>(item_.item));
+        serialize(temp, out);
+    }
 
 // ----------------------------------------------------------------------------------------
 
@@ -271,7 +350,7 @@ namespace dlib
             size &= 0x0F;
             
             // check if the serialized object is too big
-            if (size > sizeof(T))
+            if (size > (unsigned long)tmin<sizeof(T),8>::value || size == 0)
             {
                 return true;
             }
@@ -385,7 +464,7 @@ namespace dlib
             size &= 0x8F;
 
             // check if an error occurred 
-            if (size > sizeof(T)) 
+            if (size > (unsigned long)tmin<sizeof(T),8>::value || size == 0)
                 return true;
            
 
@@ -518,7 +597,7 @@ namespace dlib
     )
     {
         std::ios::fmtflags oldflags = in.flags();  
-        in.flags(); 
+        in.flags(static_cast<std::ios_base::fmtflags>(0));
         std::streamsize ss = in.precision(35); 
         if (in.peek() == 'i')
         {
@@ -649,6 +728,18 @@ namespace dlib
     template <typename T, typename alloc>
     void deserialize (
         std::vector<T,alloc>& item,
+        std::istream& in
+    );
+
+    template <typename T, typename alloc>
+    void serialize (
+        const std::deque<T,alloc>& item,
+        std::ostream& out
+    );
+
+    template <typename T, typename alloc>
+    void deserialize (
+        std::deque<T,alloc>& item,
         std::istream& in
     );
 
@@ -1037,6 +1128,44 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    template <typename T, typename alloc>
+    void serialize (
+        const std::deque<T,alloc>& item,
+        std::ostream& out
+    )
+    {
+        try
+        { 
+            const unsigned long size = static_cast<unsigned long>(item.size());
+
+            serialize(size,out); 
+            for (unsigned long i = 0; i < item.size(); ++i)
+                serialize(item[i],out);
+        }
+        catch (serialization_error& e)
+        { throw serialization_error(e.info + "\n   while serializing object of type std::deque"); }
+    }
+
+    template <typename T, typename alloc>
+    void deserialize (
+        std::deque<T, alloc>& item,
+        std::istream& in
+    )
+    {
+        try 
+        { 
+            unsigned long size;
+            deserialize(size,in); 
+            item.resize(size);
+            for (unsigned long i = 0; i < size; ++i)
+                deserialize(item[i],in);
+        }
+        catch (serialization_error& e)
+        { throw serialization_error(e.info + "\n   while deserializing object of type std::deque"); }
+    }
+
+// ----------------------------------------------------------------------------------------
+
     inline void serialize (
         const std::string& item,
         std::ostream& out
@@ -1313,6 +1442,64 @@ namespace dlib
 // ----------------------------------------------------------------------------------------
 
     template <
+        typename T,
+        size_t N
+        >
+    inline void serialize (
+        const std::array<T,N>& array,
+        std::ostream& out
+    )
+    {
+        typedef T c_array_type[N];
+        serialize(*(const c_array_type*)array.data(), out);
+    }
+
+    template <
+        typename T,
+        size_t N
+        >
+    inline void deserialize (
+        std::array<T,N>& array,
+        std::istream& in 
+    )
+    {
+        typedef T c_array_type[N];
+        deserialize(*(c_array_type*)array.data(), in);
+    }
+
+    template <
+        typename T
+        >
+    inline void serialize (
+        const std::array<T,0>& /*array*/,
+        std::ostream& out
+    )
+    {
+        size_t N = 0;
+        serialize(N, out);
+    }
+
+    template <
+        typename T
+        >
+    inline void deserialize (
+        std::array<T,0>& /*array*/,
+        std::istream& in 
+    )
+    {
+        size_t N;
+        deserialize(N, in);
+        if (N != 0)
+        {
+            std::ostringstream sout;
+            sout << "Expected std::array of size 0 but found a size of " << N;
+            throw serialization_error(sout.str());
+        }
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    template <
         typename T
         >
     inline void serialize (
@@ -1376,7 +1563,7 @@ namespace dlib
         }
 
     private:
-        shared_ptr<std::ofstream> fout;
+        std::shared_ptr<std::ofstream> fout;
     };
 
     class proxy_deserialize 
@@ -1384,22 +1571,99 @@ namespace dlib
     public:
         explicit proxy_deserialize (
             const std::string& filename
-        ) 
+        )  : filename(filename)
         {
             fin.reset(new std::ifstream(filename.c_str(), std::ios::binary));
             if (!(*fin))
                 throw serialization_error("Unable to open " + filename + " for reading.");
+
+            // read the file header into a buffer and then seek back to the start of the
+            // file.
+            fin->read(file_header,4);
+            fin->clear();
+            fin->seekg(0);
         }
 
         template <typename T>
         inline proxy_deserialize& operator>>(T& item)
         {
-            deserialize(item, *fin);
-            return *this;
+            return doit(item);
+        }
+
+        template <typename T>
+        inline proxy_deserialize& operator>>(ramdump_t<T>&& item)
+        {
+            return doit(std::move(item));
         }
 
     private:
-        shared_ptr<std::ifstream> fin;
+        template <typename T>
+        inline proxy_deserialize& doit(T&& item)
+        {
+            try
+            {
+                if (fin->peek() == EOF)
+                    throw serialization_error("No more objects were in the file!");
+                deserialize(std::forward<T>(item), *fin);
+            }
+            catch (serialization_error& e)
+            {
+                std::string suffix;
+                if (looks_like_a_compressed_file())
+                    suffix = "\n *** THIS LOOKS LIKE A COMPRESSED FILE.  DID YOU FORGET TO DECOMPRESS IT? *** \n";
+
+                if (objects_read == 0)
+                {
+                    throw serialization_error("An error occurred while trying to read the first" 
+                        " object from the file " + filename + ".\nERROR: " + e.info + "\n" + suffix);
+                }
+                else if (objects_read == 1)
+                {
+                    throw serialization_error("An error occurred while trying to read the second" 
+                        " object from the file " + filename +
+                        ".\nERROR: " + e.info + "\n" + suffix);
+                }
+                else if (objects_read == 2)
+                {
+                    throw serialization_error("An error occurred while trying to read the third" 
+                        " object from the file " + filename +
+                        ".\nERROR: " + e.info + "\n" + suffix);
+                }
+                else 
+                {
+                    throw serialization_error("An error occurred while trying to read the " +
+                        std::to_string(objects_read+1) + "th object from the file " + filename +
+                        ".\nERROR: " + e.info + "\n" + suffix);
+                }
+            }
+            ++objects_read;
+            return *this;
+        }
+
+        int objects_read = 0;
+        std::string filename;
+        std::shared_ptr<std::ifstream> fin;
+
+        // We don't need to look at the file header.  However, it's here because people
+        // keep posting questions to the dlib forums asking why they get file load errors.
+        // Then it turns out that the problem is they have a compressed file that NEEDS TO
+        // BE DECOMPRESSED by bzip2 or whatever and the reason they are getting
+        // deserialization errors is because they didn't decompress the file.  So we are
+        // going to check if this file looks like a compressed file and if so then emit an
+        // error message telling them to unzip the file. :(
+        char file_header[4] = {0,0,0,0};
+
+        bool looks_like_a_compressed_file(
+        ) const 
+        {
+            if (file_header[0] == 'B' && file_header[1] == 'Z' && file_header[2] == 'h' &&
+                ('0' <= file_header[3] && file_header[3] <= '9') )
+            {
+                return true;
+            }
+
+            return false;
+        }
     };
 
     inline proxy_serialize serialize(const std::string& filename)
@@ -1491,6 +1755,19 @@ namespace dlib
         if (!in || !item.ParseFromString(temp))
         {
             throw dlib::serialization_error("Error while deserializing a Google Protocol Buffer object.");
+        }
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    inline void check_serialized_version(const std::string& expected_version, std::istream& in)
+    {
+        std::string version;
+        deserialize(version, in);
+        if (version != expected_version)
+        {
+            throw serialization_error("Unexpected version '"+version+
+                "' found while deserializing object. Expected version to be '"+expected_version+"'.");
         }
     }
 

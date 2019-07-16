@@ -23,6 +23,13 @@ namespace dlib
 
     // Microsoft Visual Studio
 
+
+#if ((defined(__GNUC__) && __GNUC__ >= 7) || defined(__clang__))
+#define DLIB_FALLTHROUGH [[fallthrough]]
+#else
+#define DLIB_FALLTHROUGH 
+#endif
+
 #if defined(_MSC_VER)
 
 #define DLIB_FORCE_INLINE	__forceinline
@@ -214,7 +221,9 @@ namespace dlib
         switch(len & 3)
         {
             case 3: k1 ^= tail[2] << 16;
+                    DLIB_FALLTHROUGH; // fall through
             case 2: k1 ^= tail[1] << 8;
+                    DLIB_FALLTHROUGH; // fall through
             case 1: k1 ^= tail[0];
                     k1 *= c1; k1 = DLIB_ROTL32(k1,15); k1 *= c2; h1 ^= k1;
         };
@@ -318,7 +327,7 @@ namespace dlib
     inline std::pair<uint64,uint64> murmur_hash3_128bit ( 
         const void* key, 
         const int len,
-        const uint32 seed = 0
+        const uint64 seed = 0
     )
     {
         const uint8 * data = (const uint8*)key;
@@ -384,24 +393,24 @@ namespace dlib
 
         switch(len & 15)
         {
-            case 15: k2 ^= uint64(tail[14]) << 48;
-            case 14: k2 ^= uint64(tail[13]) << 40;
-            case 13: k2 ^= uint64(tail[12]) << 32;
-            case 12: k2 ^= uint64(tail[11]) << 24;
-            case 11: k2 ^= uint64(tail[10]) << 16;
-            case 10: k2 ^= uint64(tail[ 9]) << 8;
+            case 15: k2 ^= uint64(tail[14]) << 48; DLIB_FALLTHROUGH; // fall through
+            case 14: k2 ^= uint64(tail[13]) << 40; DLIB_FALLTHROUGH; // fall through
+            case 13: k2 ^= uint64(tail[12]) << 32; DLIB_FALLTHROUGH; // fall through
+            case 12: k2 ^= uint64(tail[11]) << 24; DLIB_FALLTHROUGH; // fall through
+            case 11: k2 ^= uint64(tail[10]) << 16; DLIB_FALLTHROUGH; // fall through
+            case 10: k2 ^= uint64(tail[ 9]) << 8; DLIB_FALLTHROUGH; // fall through
             case  9: k2 ^= uint64(tail[ 8]) << 0;
-                     k2 *= c2; k2  = DLIB_ROTL64(k2,33); k2 *= c1; h2 ^= k2;
+                     k2 *= c2; k2  = DLIB_ROTL64(k2,33); k2 *= c1; h2 ^= k2; DLIB_FALLTHROUGH; // fall through
 
-            case  8: k1 ^= uint64(tail[ 7]) << 56;
-            case  7: k1 ^= uint64(tail[ 6]) << 48;
-            case  6: k1 ^= uint64(tail[ 5]) << 40;
-            case  5: k1 ^= uint64(tail[ 4]) << 32;
-            case  4: k1 ^= uint64(tail[ 3]) << 24;
-            case  3: k1 ^= uint64(tail[ 2]) << 16;
-            case  2: k1 ^= uint64(tail[ 1]) << 8;
+            case  8: k1 ^= uint64(tail[ 7]) << 56; DLIB_FALLTHROUGH; // fall through
+            case  7: k1 ^= uint64(tail[ 6]) << 48; DLIB_FALLTHROUGH; // fall through
+            case  6: k1 ^= uint64(tail[ 5]) << 40; DLIB_FALLTHROUGH; // fall through
+            case  5: k1 ^= uint64(tail[ 4]) << 32; DLIB_FALLTHROUGH; // fall through
+            case  4: k1 ^= uint64(tail[ 3]) << 24; DLIB_FALLTHROUGH; // fall through
+            case  3: k1 ^= uint64(tail[ 2]) << 16; DLIB_FALLTHROUGH; // fall through
+            case  2: k1 ^= uint64(tail[ 1]) << 8; DLIB_FALLTHROUGH; // fall through
             case  1: k1 ^= uint64(tail[ 0]) << 0;
-                     k1 *= c1; k1  = DLIB_ROTL64(k1,31); k1 *= c2; h1 ^= k1;
+                     k1 *= c1; k1  = DLIB_ROTL64(k1,31); k1 *= c2; h1 ^= k1; 
         };
 
         //----------

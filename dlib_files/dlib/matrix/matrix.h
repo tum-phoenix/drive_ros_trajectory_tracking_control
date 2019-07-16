@@ -15,6 +15,14 @@
 #include "matrix_data_layout.h"
 #include "matrix_assign_fwd.h"
 #include "matrix_op.h"
+#include <utility>
+#ifdef DLIB_HAS_INITIALIZER_LISTS
+#include <initializer_list>
+#endif
+
+#ifdef MATLAB_MEX_FILE
+#include <mex.h>
+#endif
 
 #ifdef _MSC_VER
 // Disable the following warnings for Visual Studio
@@ -24,6 +32,18 @@
 // Which we get from this code but it is not an error so I'm turning this
 // warning off and then turning it back on at the end of the file.
 #pragma warning(disable : 4355)
+
+// "warning C4723: potential divide by 0" - This warning is triggered in
+// matrix(const std::initializer_list<T>& l) where the compiler can see that
+// matrix<> was templated in a way making NR ending up 0, but division by 0 at runtime
+// is not possible because the division operation is inside "if (NR!=0)" block.
+#pragma warning(disable : 4723)
+
+// "warning C4724: potential mod by 0" - This warning is triggered in
+// matrix(const std::initializer_list<T>& l) where the compiler can see that
+// matrix<> was templated in a way making NR ending up 0, but mod by 0 at runtime
+// is not possible because the mod operation is inside "if (NR!=0)" block.
+#pragma warning(disable : 4724)
 
 #endif
 
@@ -1106,6 +1126,112 @@ namespace dlib
             matrix_assign(*this, m);
         }
 
+#ifdef DLIB_HAS_INITIALIZER_LISTS
+        matrix(const std::initializer_list<T>& l)
+        {
+            if (NR*NC != 0)
+            {
+                DLIB_ASSERT(l.size() == NR*NC, 
+                    "\t matrix::matrix(const std::initializer_list& l)"
+                    << "\n\t You are trying to initialize a statically sized matrix with a list that doesn't have a matching size."
+                    << "\n\t l.size(): "<< l.size()
+                    << "\n\t NR*NC:    "<< NR*NC);
+
+                data.set_size(NR, NC);
+            }
+            else if (NR!=0) 
+            {
+                DLIB_ASSERT(l.size()%NR == 0, 
+                    "\t matrix::matrix(const std::initializer_list& l)"
+                    << "\n\t You are trying to initialize a statically sized matrix with a list that doesn't have a compatible size."
+                    << "\n\t l.size(): "<< l.size()
+                    << "\n\t NR:       "<< NR);
+
+                if (l.size() != 0)
+                    data.set_size(NR, l.size()/NR);
+            }
+            else if (NC!=0) 
+            {
+                DLIB_ASSERT(l.size()%NC == 0, 
+                    "\t matrix::matrix(const std::initializer_list& l)"
+                    << "\n\t You are trying to initialize a statically sized matrix with a list that doesn't have a compatible size."
+                    << "\n\t l.size(): "<< l.size()
+                    << "\n\t NC:       "<< NC);
+
+                if (l.size() != 0)
+                    data.set_size(l.size()/NC, NC);
+            }
+            else if (l.size() != 0)
+            {
+                data.set_size(l.size(),1);
+            }
+
+            if (l.size() != 0)
+            {
+                T* d = &data(0,0);
+                for (auto&& v : l)
+                    *d++ = v;
+            }
+
+        }
+
+        std::unique_ptr<T[]> steal_memory(
+        )
+        {
+            return data.steal_memory();
+        }
+
+        matrix& operator=(const std::initializer_list<T>& l)
+        {
+            matrix temp(l);
+            temp.swap(*this);
+            return *this;
+        }
+#endif // DLIB_HAS_INITIALIZER_LISTS
+
+#ifdef DLIB_HAS_RVALUE_REFERENCES
+        matrix(matrix&& item)
+        {
+        #ifdef MATLAB_MEX_FILE
+            // You can't move memory around when compiled in a matlab mex file and the
+            // different locations have different ownership settings.
+            if (data._private_is_owned_by_matlab() == item.data._private_is_owned_by_matlab())
+            {
+                swap(item);
+            }
+            else
+            {
+                data.set_size(item.nr(),item.nc());
+                matrix_assign(*this, item);
+            }
+        #else
+            swap(item);
+        #endif
+        }
+
+        matrix& operator= (
+            matrix&& rhs
+        )
+        {
+        #ifdef MATLAB_MEX_FILE
+            // You can't move memory around when compiled in a matlab mex file and the
+            // different locations have different ownership settings.
+            if (data._private_is_owned_by_matlab() == rhs.data._private_is_owned_by_matlab())
+            {
+                swap(rhs);
+            }
+            else
+            {
+                data.set_size(rhs.nr(),rhs.nc());
+                matrix_assign(*this, rhs);
+            }
+        #else
+            swap(rhs);
+        #endif
+            return *this;
+        }
+#endif // DLIB_HAS_RVALUE_REFERENCES
+
         template <typename U, size_t len>
         explicit matrix (
             U (&array)[len]
@@ -1222,6 +1348,31 @@ namespace dlib
                 );
             return data(0);
         }
+
+#ifdef MATLAB_MEX_FILE
+        void _private_set_mxArray(
+            mxArray* mem 
+        )
+        {
+            data._private_set_mxArray(mem);
+        }
+
+        mxArray* _private_release_mxArray(
+        )
+        {
+            return data._private_release_mxArray();
+        }
+
+        void _private_mark_owned_by_matlab()
+        {
+            data._private_mark_owned_by_matlab();
+        }
+
+        bool _private_is_owned_by_matlab()
+        {
+            return data._private_is_owned_by_matlab();
+        }
+#endif
 
         void set_size (
             long rows,
@@ -1395,6 +1546,9 @@ namespace dlib
             }
             else
             {
+                DLIB_ASSERT(size() == 0, 
+                    "\t const matrix::operator+=(m)"
+                    << "\n\t You are trying to add two matrices that have incompatible dimensions.");
                 *this = m;
             }
             return *this;
@@ -1429,6 +1583,9 @@ namespace dlib
             }
             else
             {
+                DLIB_ASSERT(size() == 0, 
+                    "\t const matrix::operator-=(m)"
+                    << "\n\t You are trying to subtract two matrices that have incompatible dimensions.");
                 *this = -m;
             }
             return *this;
@@ -1455,6 +1612,10 @@ namespace dlib
             }
             else
             {
+                DLIB_ASSERT(this->size() == 0, 
+                    "\t const matrix::operator+=(m)"
+                    << "\n\t You are trying to add two matrices that have incompatible dimensions.");
+
                 set_size(m.nr(), m.nc());
                 for (long i = 0; i < size; ++i)
                     data(i) = m.data(i);
@@ -1474,6 +1635,9 @@ namespace dlib
             }
             else
             {
+                DLIB_ASSERT(this->size() == 0, 
+                    "\t const matrix::operator-=(m)"
+                    << "\n\t You are trying to subtract two matrices that have incompatible dimensions.");
                 set_size(m.nr(), m.nc());
                 for (long i = 0; i < size; ++i)
                     data(i) = -m.data(i);
@@ -1485,8 +1649,8 @@ namespace dlib
             const T val
         )
         {
-            const long size = nr()*nc();
-            for (long i = 0; i < size; ++i)
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
                 data(i) += val;
 
             return *this;
@@ -1496,8 +1660,8 @@ namespace dlib
             const T val
         )
         {
-            const long size = nr()*nc();
-            for (long i = 0; i < size; ++i)
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
                 data(i) -= val;
 
             return *this;
@@ -1605,9 +1769,9 @@ namespace dlib
 
             literal_assign_helper(const literal_assign_helper& item) : m(item.m), r(item.r), c(item.c), has_been_used(false) {}
             explicit literal_assign_helper(matrix* m_): m(m_), r(0), c(0),has_been_used(false) {next();}
-            ~literal_assign_helper() throw (std::exception)
+            ~literal_assign_helper() noexcept(false)
             {
-                DLIB_CASSERT(!has_been_used || r == m->nr(),
+                DLIB_CASSERT(!has_been_used || r == (*m).nr(),
                              "You have used the matrix comma based assignment incorrectly by failing to\n"
                              "supply a full set of values for every element of a matrix object.\n");
             }
@@ -1616,14 +1780,14 @@ namespace dlib
                 const T& val
             ) const
             {
-                DLIB_CASSERT(r < m->nr() && c < m->nc(),
+                DLIB_CASSERT(r < (*m).nr() && c < (*m).nc(),
                              "You have used the matrix comma based assignment incorrectly by attempting to\n" <<
                              "supply more values than there are elements in the matrix object being assigned to.\n\n" <<
                              "Did you forget to call set_size()?" 
                              << "\n\t r: " << r 
                              << "\n\t c: " << c 
-                             << "\n\t m->nr(): " << m->nr()
-                             << "\n\t m->nc(): " << m->nc());
+                             << "\n\t m->nr(): " << (*m).nr()
+                             << "\n\t m->nc(): " << (*m).nc());
                 (*m)(r,c) = val;
                 next();
                 has_been_used = true;
@@ -1632,13 +1796,13 @@ namespace dlib
 
         private:
 
-            friend class matrix;
+            friend class matrix<T,num_rows,num_cols,mem_manager,layout>;
 
             void next (
             ) const
             {
                 ++c;
-                if (c == m->nc())
+                if (c == (*m).nc())
                 {
                     c = 0;
                     ++r;
@@ -1666,13 +1830,9 @@ namespace dlib
         ) 
         {  
             // assign the given value to every spot in this matrix
-            for (long r = 0; r < nr(); ++r)
-            {
-                for (long c = 0; c < nc(); ++c)
-                {
-                    data(r,c) = val;
-                }
-            }
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
+                data(i) = val;
 
             // Now return the literal_assign_helper so that the user
             // can use the overloaded comma notation to initialize 
@@ -1780,6 +1940,50 @@ namespace dlib
             throw serialization_error(e.info + "\n   while deserializing a dlib::matrix");
         }
     }
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename T,
+        long NR,
+        long NC,
+        typename mm,
+        typename l
+        >
+    void serialize (
+        const ramdump_t<matrix<T,NR,NC,mm,l>>& item_, 
+        std::ostream& out
+    )
+    {
+        auto& item = item_.item;
+        serialize(item.nr(), out);
+        serialize(item.nc(), out);
+        if (item.size() != 0)
+            out.write((char*)&item(0,0), sizeof(item(0,0))*item.size());
+    }
+
+    template <
+        typename T,
+        long NR,
+        long NC,
+        typename mm,
+        typename l
+        >
+    void deserialize (
+        ramdump_t<matrix<T,NR,NC,mm,l>>&& item_, 
+        std::istream& in 
+    )
+    {
+        auto& item = item_.item;
+        long nr, nc;
+        deserialize(nr, in);
+        deserialize(nc, in);
+        item.set_size(nr,nc);
+        if (item.size() != 0)
+            in.read((char*)&item(0,0), sizeof(item(0,0))*item.size());
+    }
+
+// ----------------------------------------------------------------------------------------
 
     template <
         typename EXP
@@ -1955,11 +2159,16 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    typedef matrix<double,0,0,default_memory_manager,column_major_layout> matrix_colmajor;
+    typedef matrix<float,0,0,default_memory_manager,column_major_layout> fmatrix_colmajor;
+
 }
 
 #ifdef _MSC_VER
-// put that warning back to its default setting
+// put warnings back to their default settings
 #pragma warning(default : 4355)
+#pragma warning(default : 4723)
+#pragma warning(default : 4724)
 #endif
 
 #endif // DLIB_MATRIx_
