@@ -5,6 +5,7 @@ project(drive_ros_trajectory_tracking_control)
 add_compile_options(-std=c++11)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Drestrict=__restrict__") #use restrict in c++, I wonder if this works
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(cppad)
+find_package(CPPAD)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -109,7 +110,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES drive_ros_trajectory_tracking_control
   CATKIN_DEPENDS roscpp std_msgs drive_ros_msgs drive_ros_uavcan
-  DEPENDS cppad
+  DEPENDS CPPAD
 )
 
 ###########
@@ -122,10 +123,9 @@ include_directories(
   include
   control_systems/src
   ${catkin_INCLUDE_DIRS}
-  ${cppad_INCLUDE_DIRS}
- # dlib_files/dlib
+  ${CPPAD_INCLUDE_DIRS}
 )
-add_subdirectory(dlib_files/dlib dlib_build)
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/drive_ros_trajectory_tracking_control.cpp
@@ -154,7 +154,7 @@ add_executable(${PROJECT_NAME}_node
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#add_library (model_predictive_controller_dlib MODULE ${SOURCES} ${HEADERS} "dlib_files")
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
@@ -211,3 +211,4 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
