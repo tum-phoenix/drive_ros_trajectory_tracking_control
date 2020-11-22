@@ -1,0 +1,31 @@
+<launch>
+    <arg name="trajectory_topic" default="/trajectory_generator/trajectory"/>
+    <arg name="drive_command_out" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
+    <arg name="drive_state_in" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
+    <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>
+    <arg name="driving_line_topic" default="/driving_line"/>
+    <arg name="output" default="screen"/>
+    <node name="trajectory_tracking_controller" pkg="drive_ros_trajectory_tracking_control" type="drive_ros_trajectory_tracking_control_node" respawn="false" output="$(arg output)">
+        <remap from="trajectory_in" to="$(arg trajectory_topic)"/>
+        <remap from="meta_in" to="$(arg trajectory_meta_input_topic)"/>
+        <remap from="drive_command_out" to="$(arg drive_command_out)"/>
+        <remap from="drive_state_in" to="$(arg drive_state_in)"/>
+        <rosparam>
+            delay: 0 <!--stage prediction-->
+            link_length: 0.1
+            cycletime: 20
+            max_lateral_acc: 1
+            front_angle_rate_Bound: 1
+            rear_angle_rate_Bound: 1
+            penalty_y: 10
+            penalty_phi: 10
+            penalty_front_angle: 1
+            penalty_rear_angle: 1
+            penalty_front_angle_rate: 100
+            penalty_rear_angle_rate: 100
+            node_min_speed: 0.5
+            node_max_speed: 0.5
+            angle_bound: 22
+        </rosparam>
+    </node>
+</launch>

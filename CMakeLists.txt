@@ -143,6 +143,7 @@ add_executable(${PROJECT_NAME}_node
     control-systems/src/andromeda.c
     src/trajectory_tracking_control_node.cpp
     src/model_predictive_controller.cpp
+    src/carrot_controller.cpp
     src/trajectory_tracking_controller.cpp)
 
 ## Rename C++ executable without prefix

@@ -1,23 +1,20 @@
-//
-// Created by seb on 22.11.20.
-//
-
 #include "../include/drive_ros_trajectory_tracking_control/carrot_controller.h"
-CarrotController::carrot_controller(ros::NodeHandle nh, ros::NodeHandle pnh):
+
+CarrotController::CarrotController(ros::NodeHandle nh, ros::NodeHandle pnh):
         TrajectoryTrackingController(nh, pnh) {
 
-    pnh_.getParam("penalty_y", weight_y_);
-    pnh_.getParam("penalty_phi", weight_phi_);
-    pnh_.getParam("penalty_front_angle", weight_steeringFront_);
-    pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
+//    pnh_.getParam("penalty_y", weight_y_);
+//    pnh_.getParam("penalty_phi", weight_phi_);
+//    pnh_.getParam("penalty_front_angle", weight_steeringFront_);
+//    pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
     //von config einlesen, um live einzustellen
 
-    mpcParameters.stepSize = 0.1; //Zeitschrittgroesse fuer MPC
+//    mpcParameters.stepSize = 0.1; //Zeitschrittgroesse fuer MPC
     trajectory_sub_ = nh.subscribe("/trajectory_publisher", 1, &CarrotController::trajectoryCB, this);
 }
 
 
-CarrotController::~carrot_controller() {}
+CarrotController::~CarrotController() {}
 
 void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
 //    for(int i = 0; i < CHAIN_NUM_NODES; i++){
@@ -45,9 +42,9 @@ void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &ms
 // ===========================
 
     // calculate forward velocity
-    float forwardDistanceX = minForwardDist + std::abs(currentVelocity) * k1;
+//    float forwardDistanceX = minForwardDist + std::abs(currentVelocity) * k1;
 //    forwardDistanceX = hardcodedForwardDistance; //std::min(forwardDistanceX, msg->detectionRange); // limit to detectionRange
-    forwardDistanceX = carrot_x
+    float forwardDistanceX = carrot_x;
     // get y from polynom
     float forwardDistanceY = 0.f;
 
@@ -95,7 +92,7 @@ void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &ms
 //    }
 
 //    forwardDistanceY = compute_polynomial_at_location(msg, forwardDistanceX);
-    forwardDistanceX = carrot_y
+    forwardDistanceY = carrot_y;
     // compute derivative on carrot point to get normal if we need to offset ortogonally (lane change)
 //    if (laneChangeDistance != 0.f) {
 //        float derivative = derive_polynomial_at_location(msg, forwardDistanceX);
@@ -119,7 +116,7 @@ void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &ms
 
     // TODO: querbeschleunigung
 
-    float vGoal = vMax - std::abs(kappa) * (vMax - vMin);
+    float vGoal = carrot_vx;
 
     ROS_INFO_NAMED(stream_name_, "vGoal = %f", vGoal);
 
@@ -127,37 +124,37 @@ void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &ms
     // 		steering angles
     // ===========================
 
-    float phiAtGoalX = 0.f; // deviate the polynom
-    for(int i = 1; i <= msg->polynom_order; i++) {
-        float tmp = msg->polynom_params.at(i) * i;
-        for(int j = 1; j < i; j++) {
-            tmp *= forwardDistanceX;
-        }
-        phiAtGoalX += tmp;
-    }
+//    float phiAtGoalX = 0.f; // deviate the polynom
+//    for(int i = 1; i <= msg->polynom_order; i++) {
+//        float tmp = msg->polynom_params.at(i) * i;
+//        for(int j = 1; j < i; j++) {
+//            tmp *= forwardDistanceX;
+//        }
+//        phiAtGoalX += tmp;
+//    }
 
-    ROS_INFO_NAMED(stream_name_, "polynom(x)  = %.2f", forwardDistanceY);
-    ROS_INFO_NAMED(stream_name_, "polynom'(x) = %.2f", phiAtGoalX);
-
-    // radius is also turnRadiusY
-    float radius = forwardDistanceY / (1.f - std::sin(M_PI_2 - phiAtGoalX));
-
-    float turnRadiusX = -((forwardDistanceY * std::cos(M_PI_2 - phiAtGoalX)) / (1.f - std::sin(M_PI_2 - phiAtGoalX))) + forwardDistanceX;
-
-    ROS_INFO_NAMED(stream_name_, "Turning point (%.2f, %.2f)", turnRadiusX, radius);
-
-    float steeringAngleRear  = - std::atan(turnRadiusX                  / (radius + (0.001f*(radius == 0.f))));
-    float steeringAngleFront = - std::atan((turnRadiusX - axisDistance) / (radius + (0.001f*(radius == 0.f))));
+//    ROS_INFO_NAMED(stream_name_, "polynom(x)  = %.2f", forwardDistanceY);
+//    ROS_INFO_NAMED(stream_name_, "polynom'(x) = %.2f", phiAtGoalX);
+//
+//     radius is also turnRadiusY
+//    float radius = forwardDistanceY / (1.f - std::sin(M_PI_2 - phiAtGoalX));
+//
+//    float turnRadiusX = -((forwardDistanceY * std::cos(M_PI_2 - phiAtGoalX)) / (1.f - std::sin(M_PI_2 - phiAtGoalX))) + forwardDistanceX;
+//
+//    ROS_INFO_NAMED(stream_name_, "Turning point (%.2f, %.2f)", turnRadiusX, radius);
+//
+//    float steeringAngleRear  = - std::atan(turnRadiusX                  / (radius + (0.001f*(radius == 0.f))));
+//    float steeringAngleFront = - std::atan((turnRadiusX - axisDistance) / (radius + (0.001f*(radius == 0.f))));
 
     //ROS_INFO("Steering front = %.1f[deg]", steeringAngleFront * 180.f / M_PI);
     //ROS_INFO("Steering rear  = %.1f[deg]", steeringAngleRear * 180.f / M_PI);
 
     drive_ros_uavcan::phoenix_msgs__NucDriveCommand driveCmdMsg;
-    driveCmdMsg.phi_f = -kappa
+    driveCmdMsg.phi_f = -kappa;
     if (!steerFrontAndRear)
         driveCmdMsg.phi_r = 0.0f;
     else
-        driveCmdMsg.phi_r = -kappa*understeerFactor;
+        driveCmdMsg.phi_r = -kappa;
     driveCmdMsg.lin_vel = carrot_vx;
     driveCmdMsg.blink_com = blink_com;
 
@@ -165,7 +162,7 @@ void CarrotController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &ms
     ROS_INFO_NAMED(stream_name_, "Steering front = %.1f[deg]", driveCmdMsg.phi_f * 180.f / M_PI);
     ROS_INFO_NAMED(stream_name_, "Steering rear  = %.1f[deg]", driveCmdMsg.phi_r * 180.f / M_PI);
 
-    canPub.publish(driveCmdMsg);
+    nuc_command_pub_.publish(driveCmdMsg);
     ROS_INFO_NAMED(stream_name_, "Published uavcan message");
 
 }
