@@ -41,9 +41,4 @@ void flatness_controller::trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr
     }
 
 
-
-
-
-
-
 }
