@@ -1,5 +1,5 @@
 <launch>
-    <arg name="trajectory_topic" default="/trajectory_generator/trajectory"/>
+    <arg name="trajectory_topic" default="/local_trajectory"/>
     <arg name="drive_command_out" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <arg name="drive_state_in" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
     <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>

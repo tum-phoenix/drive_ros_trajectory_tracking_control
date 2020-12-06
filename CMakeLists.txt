@@ -144,7 +144,8 @@ add_executable(${PROJECT_NAME}_node
     src/trajectory_tracking_control_node.cpp
     src/model_predictive_controller.cpp
     src/carrot_controller.cpp
-    src/trajectory_tracking_controller.cpp)
+    src/trajectory_tracking_controller.cpp
+    src/pid_controller.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
