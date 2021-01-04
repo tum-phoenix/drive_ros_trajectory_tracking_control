@@ -3,6 +3,7 @@
 #define SRC_PID_CONTROLLER_H
 #include <ros/ros.h>
 #include <drive_ros_trajectory_tracking_control/trajectory_tracking_controller.h>
+#include <drive_ros_msgs/TrajectoryPoint.h>
 
 
 class PIDController : public TrajectoryTrackingController{
@@ -11,6 +12,9 @@ public:
     ~PIDController();
 private:
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
+
+    drive_ros_msgs::TrajectoryPoint getTrajectoryPoint(
+            const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory);
 
     std::string stream_name_ = "PIDController";
 
@@ -23,9 +27,9 @@ private:
     float eold;
 
     // pid gains
-    float k_p=60.0;
-    float k_d=50.0;
-    float k_i=2.0;
+    float k_p;
+    float k_d;
+    float k_i;
 
 };
 

@@ -5,14 +5,10 @@
 PIDController::PIDController(ros::NodeHandle nh, ros::NodeHandle pnh):
         TrajectoryTrackingController(nh, pnh) {
 
-//    pnh_.getParam("penalty_y", weight_y_);
-//    pnh_.getParam("penalty_phi", weight_phi_);
-//    pnh_.getParam("penalty_front_angle", weight_steeringFront_);
-//    pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
-    //von config einlesen, um live einzustellen
-
-//    mpcParameters.stepSize = 0.1; //Zeitschrittgroesse fuer MPC
     trajectory_sub_ = nh.subscribe("local_trajectory", 1, &PIDController::trajectoryCB, this);
+    pnh_.getParam("pid_k_p",k_p);
+    pnh_.getParam("pid_k_i",k_i);
+    pnh_.getParam("pid_k_d",k_d);
     esum=0;
     eold=0;
 }
@@ -22,23 +18,26 @@ PIDController::~PIDController() {}
 
 void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
 
-    auto pid_x = msg->points[0].pose.x;
-    auto pid_y = msg->points[0].pose.y;
-    auto pid_vx = msg->points[0].twist.x;
-    auto pid_vy = msg->points[0].twist.y;
+
+    // for simulation just use velocity of first trajectory point
+    double v=msg->points[0].twist.x;
+
+    //double v=cur_v_;
+
+    //check velocity
+    if(fabs(v) < 0.1){
+        ROS_INFO_NAMED(stream_name_, "car is slow: ");
+        v=0.1;//Some controller has some issue divides by v without error-checking
+    }
+    double distance_to_trajectory_point = v * cycle_t_;
+    drive_ros_msgs::TrajectoryPoint target_point=getTrajectoryPoint(distance_to_trajectory_point,msg);
+
+    auto pid_x = target_point.pose.x;
+    auto pid_y = target_point.pose.y;
+    auto pid_vx = target_point.twist.x;
+    auto pid_vy = target_point.twist.y;
 
 
-    // get distance x
-    float forwardDistanceX = pid_x;
-    // get distance y
-    float forwardDistanceY = pid_y;
-
-    // handle lane changes and hard-coded turn/drive commands
-    float laneChangeDistance = 0.f;
-    bool steerFrontAndRear = false;
-
-    drive_ros_uavcan::phoenix_msgs__NucDriveCommand::_blink_com_type blink_com =
-            drive_ros_uavcan::phoenix_msgs__NucDriveCommand::NO_BLINK;
 
     //calculate steering angle
         //control error
@@ -51,31 +50,30 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
     eold=e;
 
     //saturation
-    if (kappa>(22.f*M_PI/180.f)){
-        kappa=22.f*M_PI/180.f;
+    if (kappa>(angle_bound*M_PI/180.f)){
+        kappa=angle_bound*M_PI/180.f;
     }
-    else if(kappa<(-22.f*M_PI/180.f)){
-        kappa=-22.f*M_PI/180.f;
+    else if(kappa<(-angle_bound*M_PI/180.f)){
+        kappa=-angle_bound*M_PI/180.f;
     }
 
     //print goal point and steering angle
-    ROS_INFO_NAMED(stream_name_, "Goal point (%.2f, %.2f)", forwardDistanceX, forwardDistanceY);
+    ROS_INFO_NAMED(stream_name_, "Goal point (%.2f, %.2f)", pid_x, pid_y);
     ROS_INFO_NAMED(stream_name_, "Kappa = %.5f", kappa);
 
     // TODO: laengsbeschleunigung
 
-    float vGoal = pid_vx;
 
-    ROS_INFO_NAMED(stream_name_, "vGoal = %f", vGoal);
+    ROS_INFO_NAMED(stream_name_, "vGoal = %f", pid_vx);
 
+    drive_ros_uavcan::phoenix_msgs__NucDriveCommand::_blink_com_type blink_com =
+            drive_ros_uavcan::phoenix_msgs__NucDriveCommand::NO_BLINK;
 
     drive_ros_uavcan::phoenix_msgs__NucDriveCommand driveCmdMsg;
+    //kappa=-kappa; //for simulation not necessary
     driveCmdMsg.phi_f = kappa;
-    if (!steerFrontAndRear)
-        driveCmdMsg.phi_r = 0.0f;
-    else
-        driveCmdMsg.phi_r = kappa;
-    driveCmdMsg.lin_vel = vGoal;
+    driveCmdMsg.phi_r = 0.0f;
+    driveCmdMsg.lin_vel = pid_vx;
     driveCmdMsg.blink_com = blink_com;
 
     //if(!isnanf(steeringAngleFront) && !isnanf(steeringAngleRear)) {
@@ -85,4 +83,52 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
     nuc_command_pub_.publish(driveCmdMsg);
     ROS_INFO_NAMED(stream_name_, "Published uavcan message");
 
+}
+
+
+drive_ros_msgs::TrajectoryPoint PIDController::getTrajectoryPoint(
+        const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory){
+    //if we find nothing, we just want to idle forward
+    drive_ros_msgs::TrajectoryPoint trajectoryPoint;
+    //x-Pos
+    trajectoryPoint.pose.x = distanceToPoint;
+    //y-Pos
+    trajectoryPoint.pose.y = 0;
+    trajectoryPoint.twist.x = 0;
+    trajectoryPoint.twist.y = 0;
+    if(trajectory->points.size() == 0){
+        ROS_ERROR_STREAM("Can't follow anything");
+        return trajectoryPoint;
+    }
+    bool found = false;
+
+    //old code
+    //Nur den Abstand in x-richtung zu nehmen ist nicht schlau, denn wenn das Auto eskaliert eskaliert der Regler noch viel mehr!
+    float currentDistance = 0;
+    for(int i = 1; i < trajectory->points.size(); i++){
+        drive_ros_msgs::TrajectoryPoint bot = trajectory->points[i-1];
+        drive_ros_msgs::TrajectoryPoint top = trajectory->points[i];
+        float length=sqrt(pow(top.pose.x-bot.pose.x,2)+pow(top.pose.y-bot.pose.y,2));
+        currentDistance += length;
+        if(currentDistance > distanceToPoint){
+            //We start at the bottom-point
+            //inerpolate between bot and top! #IMPORTANT (velocity!,viewdir)
+            float delta = currentDistance-distanceToPoint;
+            float along[2];
+            along[0] = ((bot.pose.x-top.pose.x)/length)*delta;
+            along[1] = ((bot.pose.y-top.pose.y)/length)*delta;
+            trajectoryPoint =  top;
+            trajectoryPoint.pose.x = trajectoryPoint.pose.x+along[0];
+            trajectoryPoint.pose.y = trajectoryPoint.pose.y+along[1];
+            found = true;
+            break;
+        }
+    }
+    if(!found){
+        ROS_ERROR_STREAM("No trajectoryPoint found, returning the last point of the trajectory"<< " distanceSearched: "<< currentDistance << " distanceToTrajectoryPoint: "<< distanceToPoint);
+        trajectoryPoint = trajectory->points[trajectory->points.size() - 1];
+    }
+
+    //we just return the last Point
+    return trajectoryPoint;
 }
