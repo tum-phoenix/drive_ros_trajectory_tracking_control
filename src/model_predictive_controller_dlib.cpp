@@ -12,39 +12,77 @@ ModelPredictiveController_dlib::ModelPredictiveController_dlib(ros::NodeHandle n
     pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
     //von config einlesen, um live einzustellen
 
-    mpcParameters.stepSize = 0.1; //Zeitschrittgroesse fuer MPC
 
-
-    trajectory_sub_ = nh.subscribe("driving_line_topic", 1, &ModelPredictiveController_dlib::trajectoryCB, this);
+    trajectory_sub_ = nh.subscribe("local_trajectory", 1, &ModelPredictiveController_dlib::trajectoryCB, this);
 }
 
-ModelPredictiveController_dlib::~ModelPredictiveController() {}
+ModelPredictiveController_dlib::~ModelPredictiveController_dlib() {}
 
-void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingLineConstPtr &msg) {
-    //Carrot... da diskretisiert schwierig....
-    double v =cur_v_
+void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
+    // for simulation velocity from first trajectory point
+    //double v =cur_v_
+    double v=msg->points[0].twist.x;
+
+    //check velocity
     if(fabs(v) < 0.1){
-        ROS_INFO_STREAM("car is slow: ");
+        ROS_INFO_NAMED(stream_name_,"car is slow: ");
         v=0.1;//Some controller has some issue divides by v without error-checking
     }
 
+    // get target points from trajectory
+    // velocity from first trajectory point
 
-    float forwardDistanceX = std::abs(v)* cycle_t_;
-    float forwardDistanceY =  compute_polynomial_at_location(msg, forwardDistanceX);
-    //const float distanceSearched = config().get<float>("distanceRegelpunkt", 0.50);
+    //implementation from lms with just one target point that is applied to all prediction steps
+    //double distance_to_trajectory_point;
+    //drive_ros_msgs::TrajectoryPoint target_point;
+    //    distance_to_trajectory_point=v*cycle_t_+0.4;
+    //    target_point=getTrajectoryPoint(distance_to_trajectory_point,msg);
 
-    double phi_soll = atan2(forwardDistanceY, forwardDistanceX);
-    double y_soll = forwardDistanceY;
+    // one target point for every prediction step
+    double distance_to_trajectory_points[horizon_length+1];
+    drive_ros_msgs::TrajectoryPoint target_points[horizon_length+1];
+    for(int i=0; i<horizon_length+1; i++){
+        distance_to_trajectory_points[i]=(i+1)*v*cycle_t_;
+        target_points[i]=getTrajectoryPoint(distance_to_trajectory_points[i],msg);
+    }
 
-    logger.debug("phi y v") << phi_soll << " "<< y_soll<<" "<< v;
+
+
+    //set desired states
+
+    //one target point
+//    double phi_soll;
+//    double y_soll;
+//    phi_soll=atan2(target_point.pose.y,target_point.pose.x);
+//    y_soll=target_point.pose.y;
+//    ROS_INFO_NAMED(stream_name_,"phi y: %.5f, %.5f ", phi_soll, y_soll);
+
+    //one target point per prediction step
+    double phi_soll[horizon_length];
+    double y_soll[horizon_length];
+    for(int i=0; i<horizon_length; i++){
+        phi_soll[i]=atan2(target_points[i+1].pose.y-target_points[i].pose.y,target_points[i+1].pose.x-target_points[i].pose.x);
+        y_soll[i]=target_points[i].pose.y;
+        //ROS_INFO_NAMED(stream_name_,"Schritt: %d: phi y: %.5f, %.5f ",i+1, phi_soll[i], y_soll[i]);
+    }
+
+
+
 
     double steering_front, steering_rear;
+    const int STATES_ = 2; //number of states (y and phi)
+    const int CONTROLS_ = 2; //number of control inputs (steering_front and steering_rear)
+    //declare input bounds
+    double radian_bound = (M_PI/180)*angle_bound;
+    dlib::matrix<double,CONTROLS_,1> lower, upper;
+    lower= -radian_bound, -radian_bound;
+    upper= radian_bound, radian_bound;
 
     dlib::matrix<double,STATES_,STATES_> A;
-    A = 1, T_*v, 0, 1;
+    A = 1, cycle_t_*v, 0, 1;
 
     dlib::matrix<double,STATES_,CONTROLS_> B;
-    B = 0, T_*v, T_*v/l, -T_*v/l;
+    B = 0, 0, cycle_t_*v/l, -cycle_t_*v/l;
 
     dlib::matrix<double,STATES_,1> C; //keine konstante Stoerung
     C = 0, 0;
@@ -56,12 +94,18 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
     R = weight_steeringFront_, weight_steeringRear_;
 
 
-    dlib::mpc<STATES_,CONTROLS_,MPC_HORIZON_> controller(A,B,C,Q,R,lower,upper); //30*T ist der Zeithorizont fuer die praediktion, d.h. 30 Zeitschritte wird in die Zukunft simuliert
+    dlib::mpc<STATES_,CONTROLS_,horizon_length> controller(A,B,C,Q,R,lower,upper); //30*T ist der Zeithorizont fuer die praediktion, d.h. 30 Zeitschritte wird in die Zukunft simuliert
 
-    dlib::matrix<double,STATES,1> target;
-    target = delta_y, delta_phi;
+    dlib::matrix<double,STATES_,1> target[horizon_length];
+    for(int i=0; i<horizon_length; i++){
+        target[i]=y_soll[i], phi_soll[i];
+        controller.set_target(target[i],i);
+    }
 
-    controller.set_target(target);
+//    one target point
+//    target=y_soll, phi_soll;
+//    controller.set_target(target);
+
 
     //Stellschrauben fuer performance
     //controller.set_epsilon(0.05);
@@ -76,10 +120,9 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
     steering_front = action(0,0);
     steering_rear = action(1,0);
     //TODO get angle per time
-
-    logger.debug("trajectory_point_controller") << "lw vorne: " << steering_front*180/M_PI << "  lw hinten: " << steering_rear*180/M_1_PI;
-    if(std::isnan(steering_front) || std::isnan(steering_rear || std::isnan(trajectoryPoint.velocity)) ){
-        logger.error("trajectory_point_controller: ")<<"invalid vals: " <<steering_front <<" " <<steering_rear ;
+    double v_desired = msg->points[0].twist.x;
+    if(std::isnan(steering_front) || std::isnan(steering_rear || std::isnan(v_desired)) ){
+        ROS_ERROR_STREAM("invalid vals: " <<steering_front <<" " <<steering_rear) ;
     }
 
     //state.targetDistance = trajectoryPoint.position.length(); //TODO absolutwert no idea?!
@@ -88,10 +131,61 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::DrivingL
 
     drive_command_msg.phi_f = steering_front; //publish as driving command
     drive_command_msg.phi_r = steering_rear;
-    drive_command_msg.lin_vel = v_max_;
+    drive_command_msg.lin_vel = v_desired;
     nuc_command_pub_.publish(drive_command_msg);
-    ROS_INFO_STREAM( "Steering front = " << drive_command_msg.phi_f * 180.f / M_PI);
-    ROS_INFO_STREAM( "Steering rear = " << drive_command_msg.phi_r * 180.f / M_PI);
+    ROS_INFO_NAMED(stream_name_, "Steering front = %.5f", drive_command_msg.phi_f * 180.f / M_PI);
+    ROS_INFO_NAMED(stream_name_, "Steering rear = %.5f", drive_command_msg.phi_r * 180.f / M_PI);
 
     return;
+}
+
+
+drive_ros_msgs::TrajectoryPoint ModelPredictiveController_dlib::getTrajectoryPoint(
+        const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory){
+    //if we find nothing, we just want to idle forward
+    drive_ros_msgs::TrajectoryPoint trajectoryPoint;
+    //x-Pos
+    trajectoryPoint.pose.x = distanceToPoint;
+    //y-Pos
+    trajectoryPoint.pose.y = 0;
+    //x-velocity
+    trajectoryPoint.twist.x = 0;
+    //y-velocity
+    trajectoryPoint.twist.y = 0;
+    if(trajectory->points.size() == 0){
+        ROS_ERROR_STREAM("Can't follow anything");
+        return trajectoryPoint;
+    }
+    bool found = false;
+
+    //old code
+    //Nur den Abstand in x-richtung zu nehmen ist nicht schlau, denn wenn das Auto eskaliert eskaliert der Regler noch viel mehr!
+    float currentDistance = 0;
+    for(int i = 1; i < trajectory->points.size(); i++){
+        drive_ros_msgs::TrajectoryPoint bot = trajectory->points[i-1];
+        drive_ros_msgs::TrajectoryPoint top = trajectory->points[i];
+        float length=sqrt(pow(top.pose.x-bot.pose.x,2)+pow(top.pose.y-bot.pose.y,2));
+        currentDistance += length;
+        if(currentDistance > distanceToPoint){
+            //We start at the bottom-point
+            //inerpolate between bot and top! #IMPORTANT (velocity!,viewdir)
+            float delta = currentDistance-distanceToPoint;
+            float along[2];
+            along[0] = ((bot.pose.x-top.pose.x)/length)*delta;
+            along[1] = ((bot.pose.y-top.pose.y)/length)*delta;
+            trajectoryPoint =  top;
+            trajectoryPoint.pose.x = trajectoryPoint.pose.x+along[0];
+            trajectoryPoint.pose.y = trajectoryPoint.pose.y+along[1];
+            found = true;
+            break;
+        }
+    }
+
+    if(!found){
+        ROS_ERROR_STREAM("No trajectoryPoint found, returning the last point of the trajectory:  "<< trajectory->points.size() << " distanceSearched: "<< currentDistance << " distanceToTrajectoryPoint: "<< distanceToPoint);
+        trajectoryPoint = trajectory->points[trajectory->points.size()-1];
+    }
+
+    //we just return the last Point
+    return trajectoryPoint;
 }

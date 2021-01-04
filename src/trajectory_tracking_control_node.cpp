@@ -2,6 +2,7 @@
 #include <drive_ros_trajectory_tracking_control/model_predictive_controller.h>
 #include <drive_ros_trajectory_tracking_control/carrot_controller.h>
 #include <drive_ros_trajectory_tracking_control/pid_controller.h>
+#include <drive_ros_trajectory_tracking_control/model_predictive_controller_dlib.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "trajectory_tracking_control_node");
@@ -10,7 +11,8 @@ int main(int argc, char **argv) {
 
 //    ModelPredictiveController controller(nh, pnh);
 //    CarrotController controller(nh, pnh);
-	PIDController controller(nh, pnh);
+//    PIDController controller(nh, pnh);
+    ModelPredictiveController_dlib controller(nh, pnh);
     ros::Rate loop_rate(20);
     while (ros::ok()) {
         ros::spin();

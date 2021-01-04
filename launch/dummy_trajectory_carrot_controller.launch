@@ -13,7 +13,7 @@
         <rosparam>
             delay: 0 <!--stage prediction-->
             link_length: 0.1
-            cycletime: 20
+            cycletime: 0.1
             max_lateral_acc: 1
             front_angle_rate_Bound: 1
             rear_angle_rate_Bound: 1
@@ -23,9 +23,13 @@
             penalty_rear_angle: 1
             penalty_front_angle_rate: 100
             penalty_rear_angle_rate: 100
-            node_min_speed: 0.5
-            node_max_speed: 0.5
-            angle_bound: 22
+            node_min_speed: 2.0
+            node_max_speed: 2.0
+            angle_bound: 32
+            pid_k_p: 4.0
+            pid_k_i: 0.2
+            pid_k_d: 1.5
+            horizon_length: 4
         </rosparam>
     </node>
 </launch>

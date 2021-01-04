@@ -45,6 +45,7 @@ protected:
     double nodes_v_max_;
     double nodes_v_min_;
     double cycle_t_;
+    double angle_bound;
     // store current meta inputs
     // todo: handle this stuff in trajectory generator, this should not be needed in the controller
     float v_max_ = 0;
