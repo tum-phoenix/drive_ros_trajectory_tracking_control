@@ -20,9 +20,6 @@ public:
 private:
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
 
-    drive_ros_msgs::TrajectoryPoint getTrajectoryPoint(
-            const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory);
-
     std::string stream_name_ = "ModelPredictiveController_dlib";
 
     // control parameters

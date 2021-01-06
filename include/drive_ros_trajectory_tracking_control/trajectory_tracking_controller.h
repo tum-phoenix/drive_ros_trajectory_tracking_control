@@ -18,7 +18,8 @@ protected:
     void driveStateCB(const drive_ros_uavcan::phoenix_msgs__DriveStateConstPtr &msg);
     // this is where the control magic happens
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
-
+    drive_ros_msgs::TrajectoryPoint getTrajectoryPoint(
+            const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory);
     // NodeHandles
     ros::NodeHandle nh_;
     ros::NodeHandle pnh_;

@@ -29,7 +29,8 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
         ROS_INFO_NAMED(stream_name_, "car is slow: ");
         v=0.1;//Some controller has some issue divides by v without error-checking
     }
-    double distance_to_trajectory_point = v * cycle_t_;
+    // taking a point in front of the car improves stability
+    double distance_to_trajectory_point = 2 * v * cycle_t_;
     drive_ros_msgs::TrajectoryPoint target_point=getTrajectoryPoint(distance_to_trajectory_point,msg);
 
     auto pid_x = target_point.pose.x;
@@ -40,11 +41,14 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
 
 
     //calculate steering angle
-        //control error
-        float e=pid_y;
-        esum+=e;
-    float kappa;
-        kappa = k_p*e+k_d*(e-eold)+k_i*esum;
+
+    //control error
+    float e=pid_y;
+    //integrated error
+    esum+=e;
+
+    // gain
+    float kappa = k_p*e+k_d*(e-eold)+k_i*esum;
 
     //update control errors
     eold=e;
@@ -83,52 +87,4 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
     nuc_command_pub_.publish(driveCmdMsg);
     ROS_INFO_NAMED(stream_name_, "Published uavcan message");
 
-}
-
-
-drive_ros_msgs::TrajectoryPoint PIDController::getTrajectoryPoint(
-        const double distanceToPoint , const drive_ros_msgs::TrajectoryConstPtr &trajectory){
-    //if we find nothing, we just want to idle forward
-    drive_ros_msgs::TrajectoryPoint trajectoryPoint;
-    //x-Pos
-    trajectoryPoint.pose.x = distanceToPoint;
-    //y-Pos
-    trajectoryPoint.pose.y = 0;
-    trajectoryPoint.twist.x = 0;
-    trajectoryPoint.twist.y = 0;
-    if(trajectory->points.size() == 0){
-        ROS_ERROR_STREAM("Can't follow anything");
-        return trajectoryPoint;
-    }
-    bool found = false;
-
-    //old code
-    //Nur den Abstand in x-richtung zu nehmen ist nicht schlau, denn wenn das Auto eskaliert eskaliert der Regler noch viel mehr!
-    float currentDistance = 0;
-    for(int i = 1; i < trajectory->points.size(); i++){
-        drive_ros_msgs::TrajectoryPoint bot = trajectory->points[i-1];
-        drive_ros_msgs::TrajectoryPoint top = trajectory->points[i];
-        float length=sqrt(pow(top.pose.x-bot.pose.x,2)+pow(top.pose.y-bot.pose.y,2));
-        currentDistance += length;
-        if(currentDistance > distanceToPoint){
-            //We start at the bottom-point
-            //inerpolate between bot and top! #IMPORTANT (velocity!,viewdir)
-            float delta = currentDistance-distanceToPoint;
-            float along[2];
-            along[0] = ((bot.pose.x-top.pose.x)/length)*delta;
-            along[1] = ((bot.pose.y-top.pose.y)/length)*delta;
-            trajectoryPoint =  top;
-            trajectoryPoint.pose.x = trajectoryPoint.pose.x+along[0];
-            trajectoryPoint.pose.y = trajectoryPoint.pose.y+along[1];
-            found = true;
-            break;
-        }
-    }
-    if(!found){
-        ROS_ERROR_STREAM("No trajectoryPoint found, returning the last point of the trajectory"<< " distanceSearched: "<< currentDistance << " distanceToTrajectoryPoint: "<< distanceToPoint);
-        trajectoryPoint = trajectory->points[trajectory->points.size() - 1];
-    }
-
-    //we just return the last Point
-    return trajectoryPoint;
 }

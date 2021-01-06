@@ -25,7 +25,14 @@
             penalty_rear_angle_rate: 100
             node_min_speed: 0.5
             node_max_speed: 0.5
+            node_min_speed: 2.0
+            node_max_speed: 2.0
+            angle_bound: 32
+            pid_k_p: 4.0
+            pid_k_i: 0.2
+            pid_k_d: 1.2
             angle_bound: 22
+            horizon_length: 4
         </rosparam>
     </node>
 </launch>
