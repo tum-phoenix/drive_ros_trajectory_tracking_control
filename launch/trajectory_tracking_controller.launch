@@ -23,8 +23,6 @@
             penalty_rear_angle: 1
             penalty_front_angle_rate: 100
             penalty_rear_angle_rate: 100
-            node_min_speed: 0.5
-            node_max_speed: 0.5
             node_min_speed: 2.0
             node_max_speed: 2.0
             angle_bound: 32
