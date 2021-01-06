@@ -31,6 +31,7 @@
             pid_k_d: 1.2
             angle_bound: 22
             horizon_length: 4
+            controller_type: PID
         </rosparam>
     </node>
 </launch>
