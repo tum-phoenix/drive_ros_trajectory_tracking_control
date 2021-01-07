@@ -17,8 +17,10 @@ PIDController::PIDController(ros::NodeHandle nh, ros::NodeHandle pnh):
 PIDController::~PIDController() {}
 
 void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
-
-
+    if (msg->points.size() == 0) {
+        ROS_ERROR_STREAM("PID received empty trajectory, skipping!");
+        return;
+    }
     // for simulation just use velocity of first trajectory point
     double v=msg->points[0].twist.x;
 
