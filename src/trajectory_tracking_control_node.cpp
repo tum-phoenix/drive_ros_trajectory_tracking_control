@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    pnh.getParam("cycletime", cycle_t);
+    nh.getParam("cycletime", cycle_t);
     ros::Rate loop_rate(1/cycle_t);
     while (ros::ok()) {
         ros::spin();
