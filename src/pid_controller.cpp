@@ -22,9 +22,9 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
         return;
     }
     // for simulation just use velocity of first trajectory point
-    double v=msg->points[0].twist.x;
+    //double v=msg->points[0].twist.x;
 
-    //double v=cur_v_;
+    double v=cur_v_;
 
     //check velocity
     if(fabs(v) < 0.1){
@@ -78,7 +78,7 @@ void PIDController::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) 
     drive_ros_uavcan::phoenix_msgs__NucDriveCommand driveCmdMsg;
     //kappa=-kappa; //for simulation not necessary
     driveCmdMsg.phi_f = kappa;
-    driveCmdMsg.phi_r = 0.0f;
+    driveCmdMsg.phi_r = 0.f;
     driveCmdMsg.lin_vel = pid_vx;
     driveCmdMsg.blink_com = blink_com;
 

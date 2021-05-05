@@ -20,12 +20,12 @@ ModelPredictiveController_dlib::~ModelPredictiveController_dlib() {}
 
 void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
     // for simulation velocity from first trajectory point
-    //double v =cur_v_
+    //double v = msg->points.twist.x;
     if (msg->points.size() == 0) {
         ROS_ERROR_STREAM("MPC received empty trajectory, skipping!");
         return;
     }
-    double v=msg->points[0].twist.x;
+    double v = cur_v_;
 
     //check velocity
     if(fabs(v) < 0.1){
