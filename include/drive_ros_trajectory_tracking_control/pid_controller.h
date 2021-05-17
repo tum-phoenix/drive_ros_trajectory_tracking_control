@@ -28,6 +28,11 @@ private:
     float k_d;
     float k_i;
 
+    //params for velocity PID
+    double k_p_vel, k_i_vel, k_d_vel;
+    double e_old_vel=0.0;
+    double e_sum_vel=0.0;
+
 };
 
 #endif //SRC_PID_CONTROLLER

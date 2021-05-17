@@ -25,12 +25,14 @@ private:
     // control parameters
     double weight_y_;
     double weight_phi_;
+    double weight_v_;
     double weight_steeringFront_;
     double weight_steeringRear_;
+    double weight_acc_;
     float minForwardDist_=0.0; //war 1.0 in gernerator
+    double steering_front, steering_rear;
     double l=0.2405;
     static constexpr int horizon_length=4;
-
 };
 
 
