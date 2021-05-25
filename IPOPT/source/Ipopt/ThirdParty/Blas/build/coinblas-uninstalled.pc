@@ -1,0 +1,9 @@
+prefix=/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/compiled
+libdir=/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/source/Ipopt/ThirdParty/Blas/build
+
+Name: Blas
+Description: Basic linear algebra package
+URL: https://projects.coin-or.org/BuildTools
+Version: 1.4.6
+Libs: ${libdir}/libcoinblas.la  -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -lgfortran -lm -lquadmath
+Cflags:

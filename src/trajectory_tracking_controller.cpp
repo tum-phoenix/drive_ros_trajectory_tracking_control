@@ -6,6 +6,7 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
 {
     meta_input_sub_ = nh_.subscribe("meta_in", 10, &TrajectoryTrackingController::metaInputCB, this);
     drive_state_sub_ = nh_.subscribe("drive_state_in", 5, &TrajectoryTrackingController::driveStateCB, this);
+    imu_state_sub_ = nh_.subscribe("imu_state_in", 5, &TrajectoryTrackingController::imuStateCB, this);
     nuc_command_pub_ = nh_.advertise<drive_ros_uavcan::phoenix_msgs__NucDriveCommand>("drive_command_out", 5);
 
     pnh_.getParam("link_length",link_length_);
@@ -19,7 +20,7 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     pnh_.getParam("node_max_speed", nodes_v_max_);
     pnh_.getParam("node_min_speed", nodes_v_min_);
     nh_.getParam("cycletime", cycle_t_);
-    pnh_.getParam("angle_bound",angle_bound);
+    pnh_.getParam("angle_bound", angle_bound);
 
     ROS_INFO_STREAM("Init Completed");
 }
@@ -36,6 +37,11 @@ void TrajectoryTrackingController::driveStateCB(const drive_ros_uavcan::phoenix_
     cur_angle_f_ = msg->steer_f;
     cur_angle_r_ = msg->steer_r;
     ROS_INFO_STREAM("Set current angle");
+}
+
+void TrajectoryTrackingController::imuStateCB(const drive_ros_uavcan::phoenix_msgs__ImuDataConstPtr &msg){
+    cur_yaw_ = msg->rate_gyro[2];
+    cur_acc_ = msg->lin_acceleration[0];
 }
 
 void TrajectoryTrackingController::processMetaInput() {
@@ -93,28 +99,31 @@ drive_ros_msgs::TrajectoryPoint TrajectoryTrackingController::getTrajectoryPoint
     for(int i = 1; i < trajectory->points.size(); i++){
         drive_ros_msgs::TrajectoryPoint bot = trajectory->points[i-1];
         drive_ros_msgs::TrajectoryPoint top = trajectory->points[i];
-        float length=sqrt(pow(top.pose.x-bot.pose.x,2)+pow(top.pose.y-bot.pose.y,2));
+        float length = sqrt(pow(top.pose.x-bot.pose.x,2)+pow(top.pose.y-bot.pose.y,2));
         currentDistance += length;
         if(currentDistance > distanceToPoint){
             //We start at the bottom-point
             //inerpolate between bot and top! #IMPORTANT (velocity!,viewdir)
-            float delta = currentDistance-distanceToPoint;
+            float delta = currentDistance - distanceToPoint;
             float along[2];
             along[0] = ((bot.pose.x-top.pose.x)/length)*delta;
             along[1] = ((bot.pose.y-top.pose.y)/length)*delta;
+            along[2] = ((bot.twist.x-top.twist.x)/length)*delta;
+            along[3] = ((bot.twist.y-top.twist.y)/length)*delta;
             trajectoryPoint =  top;
-            trajectoryPoint.pose.x = trajectoryPoint.pose.x+along[0];
-            trajectoryPoint.pose.y = trajectoryPoint.pose.y+along[1];
+            trajectoryPoint.pose.x = trajectoryPoint.pose.x + along[0];
+            trajectoryPoint.pose.y = trajectoryPoint.pose.y + along[1];
+            trajectoryPoint.twist.x = trajectoryPoint.twist.x + along[2];
+            trajectoryPoint.twist.y = trajectoryPoint.twist.y + along[3];
             found = true;
             break;
         }
     }
 
     if(!found){
-        ROS_ERROR_STREAM("No trajectoryPoint found, returning the last point of the trajectory:  "<< trajectory->points.size() << " distanceSearched: "<< currentDistance << " distanceToTrajectoryPoint: "<< distanceToPoint);
         trajectoryPoint = trajectory->points[trajectory->points.size()-1];
+        ROS_ERROR_STREAM("No trajectoryPoint found, returning the last point of the trajectory:  " << " distanceSearched: "<< currentDistance << " distanceToTrajectoryPoint: "<< distanceToPoint);
     }
-
     //we just return the last Point
     return trajectoryPoint;
 }

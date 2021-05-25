@@ -6,6 +6,7 @@
 #include <drive_ros_msgs/Trajectory.h>
 #include <drive_ros_uavcan/phoenix_msgs__NucDriveCommand.h>
 #include <drive_ros_uavcan/phoenix_msgs__DriveState.h>
+#include <drive_ros_uavcan/phoenix_msgs__ImuData.h>
 
 class TrajectoryTrackingController {
 public:
@@ -16,6 +17,7 @@ protected:
     void processMetaInput();
     void metaInputCB(const drive_ros_msgs::TrajectoryMetaInputConstPtr &msg);
     void driveStateCB(const drive_ros_uavcan::phoenix_msgs__DriveStateConstPtr &msg);
+    void imuStateCB(const drive_ros_uavcan::phoenix_msgs__ImuDataConstPtr &msg);
     // this is where the control magic happens
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
     drive_ros_msgs::TrajectoryPoint getTrajectoryPoint(
@@ -28,6 +30,7 @@ protected:
     ros::Subscriber meta_input_sub_;
     ros::Subscriber drive_state_sub_;
     ros::Subscriber trajectory_sub_;
+    ros::Subscriber imu_state_sub_;
 
     // publishers
     ros::Publisher nuc_command_pub_;
@@ -36,6 +39,8 @@ protected:
     float cur_v_ = 0;
     float cur_angle_f_ = 0;
     float cur_angle_r_ = 0;
+    float cur_yaw_ = 0;
+    float cur_acc_ = 0;
 
     double link_length_;
     double max_lateral_acc_;

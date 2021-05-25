@@ -1,0 +1,10 @@
+prefix=/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/compiled
+libdir=/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/source/Ipopt/Ipopt/src/Apps/AmplSolver
+
+Name: IPOPT
+Description: Ampl Interface TNLP to Ipopt
+URL: https://projects.coin-or.org/Ipopt
+Version: 3.12.7
+Libs: ${libdir}/libipoptamplinterface.la 
+Cflags: -I/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/source/Ipopt/Ipopt/src/Apps/AmplSolver
+Requires: ipopt coinasl 

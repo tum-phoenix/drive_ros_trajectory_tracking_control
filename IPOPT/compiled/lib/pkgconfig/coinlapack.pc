@@ -1,0 +1,11 @@
+prefix=/home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/compiled
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+
+Name: Lapack
+Description: Linear algebra package
+URL: https://projects.coin-or.org/BuildTools
+Version: 1.5.6
+Libs: -L${libdir} -lcoinlapack /home/phillip/Phoenix/catkin_ws/src/drive_ros_config/modules/drive_ros_trajectory_tracking_control/IPOPT/compiled/lib/libcoinblas.a -lgfortran  -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -lgfortran -lm -lquadmath   -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -lgfortran -lm -lquadmath
+Cflags:
+Requires: 

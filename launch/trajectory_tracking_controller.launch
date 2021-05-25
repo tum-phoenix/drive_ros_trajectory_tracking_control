@@ -1,6 +1,7 @@
 <launch>
     <arg name="trajectory_topic" default="/trajectory_generator/trajectory"/>
     <arg name="drive_command_out" default="/canros/msg/phoenix_msgs/NucDriveCommand"/>
+    <arg name="imu_state_in" default="/canros/msg/phoenix_msgs/NucImuState"/>
     <arg name="drive_state_in" default="/canros/msg/phoenix_msgs/NucDriveState"/>
     <arg name="trajectory_meta_input_topic" default="/trajectory_meta_commands"/>
     <arg name="driving_line_topic" default="/driving_line"/>
@@ -16,21 +17,25 @@
             max_lateral_acc: 1
             front_angle_rate_Bound: 1
             rear_angle_rate_Bound: 1
-            penalty_y: 10
-            penalty_phi: 10
-            penalty_front_angle: 1
-            penalty_rear_angle: 1
-            penalty_front_angle_rate: 100
-            penalty_rear_angle_rate: 100
+            penalty_y: 15
+            penalty_phi: 18
+            penalty_v: 17
+            penalty_front_angle: 0.5
+            penalty_rear_angle: 0.5
+            penalty_acc: 1
+            penalty_front_angle_rate: 0.25
+            penalty_rear_angle_rate: 0.25
             node_min_speed: 2.0
             node_max_speed: 2.0
-            angle_bound: 32
-            pid_k_p: 4.0
-            pid_k_i: 0.2
+            pid_k_p: 2.8
+            pid_k_i: 0.1
             pid_k_d: 1.2
+            k_p_vel: 1.2
+            k_d_vel: 0.4
+            k_i_vel: 1.0
             angle_bound: 22
             horizon_length: 4
-            controller_type: PID
+            controller_type: MPC_NONLIN
         </rosparam>
     </node>
 </launch>

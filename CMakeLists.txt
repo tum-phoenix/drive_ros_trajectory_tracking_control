@@ -125,7 +125,11 @@ include_directories(
   dlib_files
   ${catkin_INCLUDE_DIRS}
   ${CPPAD_INCLUDE_DIRS}
+  IPOPT/compiled/include
 )
+
+link_directories(IPOPT/compiled/lib)
+
 
 add_subdirectory(dlib_files/dlib dlib_build)
 
@@ -147,6 +151,7 @@ add_executable(${PROJECT_NAME}_node
     src/trajectory_tracking_control_node.cpp
     src/model_predictive_controller.cpp
     src/model_predictive_controller_dlib.cpp
+    src/model_predictive_controller_nonlin.cpp
     src/carrot_controller.cpp
     src/trajectory_tracking_controller.cpp
     src/pid_controller.cpp)
@@ -164,11 +169,10 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
-    dlib::dlib
-#   cppad
+   dlib::dlib
+   ipopt
 #   ${CMAKE_CURRENT_SOURCE_DIR}/control-systems/src/andromeda.so
 )
-#add_subdirectory(dlib_files/dlib)
 
 #############
 ## Install ##
@@ -197,6 +201,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
     FILES_MATCHING PATTERN "*.h"
     PATTERN ".svn" EXCLUDE
     )
+    
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
