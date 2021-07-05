@@ -1,5 +1,5 @@
 //
-// Created by sebastian on 02.07.19.
+// Created by phillip on 02.05.2021
 //
 
 #ifndef SRC_MODEL_PREDICTIVE_CONTROLLER_NONLIN_H
@@ -11,6 +11,19 @@
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
 
+// horizon_length and index variables for states and controls
+const size_t horizon_length = 4;
+const size_t y_idx = 0;
+const size_t phi_idx = horizon_length;
+const size_t v_idx = phi_idx + horizon_length;
+const size_t beta_idx = v_idx + horizon_length;
+const size_t yaw_idx = beta_idx + horizon_length;
+const size_t a_idx = yaw_idx + horizon_length;
+const size_t delta_f_idx = a_idx + horizon_length;
+const size_t delta_r_idx = delta_f_idx + horizon_length;
+const size_t a_ref_idx = delta_r_idx + horizon_length;
+const size_t delta_f_ref_idx = a_ref_idx + horizon_length - 1;
+const size_t delta_r_ref_idx = delta_f_ref_idx + horizon_length -1;
 
 
 class ModelPredictiveController_nonlin : public TrajectoryTrackingController{
@@ -21,43 +34,6 @@ private:
     void trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg);
     std::string stream_name_ = "ModelPredictiveController_nonlin";
 
-    // class for definition of difference equations and cost function in ipopt style
-    class FG_eval {
-    private:
-        // vehicle parameters
-        const double l = 0.2405;// wheelbase
-        const double stiffness = 20.0;// cornering stiffness
-        const double lf = 0.5*l;// distance CG front tire
-        const double lr = 0.5*l;// distance CG rear tire
-        const double m = 10;// mass
-        const double J_z = 0.1;// moment of inertia
-        const double T_ax = 0.5;// acceleration time constant
-        const double T_steer = 0.1;// steering time constant
-
-        // control parameters
-        static const size_t N = 4;// horizon_length
-        double dt;// step time
-        double weights[8];// penalties for different parts of cost function
-        double y_soll[N], phi_soll[N], v_soll[N];// trajectory reference values
-
-        // index variables for states and controls
-        size_t y_idx = 0;
-        size_t phi_idx = N;
-        size_t v_idx = phi_idx + N;
-        size_t beta_idx = v_idx + N;
-        size_t yaw_idx = beta_idx + N;
-        size_t a_idx = yaw_idx + N;
-        size_t delta_f_idx = a_idx + N;
-        size_t delta_r_idx = delta_f_idx + N;
-        size_t a_ref_idx = delta_r_idx + N;
-        size_t delta_f_ref_idx = a_ref_idx + N - 1;
-        size_t delta_r_ref_idx = delta_f_ref_idx + N -1;
-    public:
-        FG_eval(double cycle_t_, double* weight, double* y, double* phi, double* v);
-        typedef CPPAD_TESTVECTOR(CppAD::AD<double> )ADvector;
-        void operator()(ADvector& fg, const ADvector& x);
-    };
-
     // control parameters
     double weight_y_;
     double weight_phi_;
@@ -67,10 +43,26 @@ private:
     double weight_acceleration_;
     double weight_steeringFront_rate_;
     double weight_steeringRear_rate_;
-    size_t horizon_length=4;
 
+    //kalman filter control
+    bool kalman_;
+};
 
+// class for definition of difference equations and cost function in ipopt style
+class FG_eval {
+private:
+    // vehicle parameters
+    double m, J_z, lf, lr, stiffness, T_ax, T_steer;
 
+    // control parameters
+    double dt;// step time
+    double weights[8];// penalties for different parts of cost function
+    double y_soll[horizon_length], phi_soll[horizon_length], v_soll[horizon_length];// trajectory reference values
+
+public:
+    FG_eval(double cycle_t_, double* weights, double* y_ref, double* phi_ref, double* v_ref, double* params);
+    typedef CPPAD_TESTVECTOR(CppAD::AD<double> )ADvector;
+    void operator()(ADvector& fg, const ADvector& x);
 };
 
 

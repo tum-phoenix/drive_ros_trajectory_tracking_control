@@ -1,0 +1,18 @@
+kalman_cov:
+  filter_init_var_v: 0.01
+  filter_init_var_beta: 0.01
+  filter_init_var_yaw: 0.01
+  filter_init_var_acc: 0.01
+  filter_init_var_delta_f: 0.01
+  filter_init_var_delta_r: 0.01
+  sys_var_v: 0.2
+  sys_var_beta: 0.3
+  sys_var_yaw: 0.2
+  sys_var_acc: 0.05
+  sys_var_delta_f: 0.2
+  sys_var_delta_r: 0.2
+  meas_v: 0.1
+  meas_delta_f: 0.01
+  meas_delta_r: 0.01
+  meas_acc: 0.3
+  meas_yaw: 0.1

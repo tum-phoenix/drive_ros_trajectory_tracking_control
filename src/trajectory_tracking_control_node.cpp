@@ -1,5 +1,4 @@
 #include <ros/ros.h>
-#include <drive_ros_trajectory_tracking_control/model_predictive_controller.h>
 #include <drive_ros_trajectory_tracking_control/carrot_controller.h>
 #include <drive_ros_trajectory_tracking_control/pid_controller.h>
 #include <drive_ros_trajectory_tracking_control/model_predictive_controller_dlib.h>
@@ -16,9 +15,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<TrajectoryTrackingController> controller;
 
-    if (controller_type == "MPC") {
-        controller.reset(new ModelPredictiveController(nh, pnh));
-    } else if (controller_type == "carrot") {
+    if (controller_type == "carrot") {
         controller.reset(new CarrotController(nh, pnh));
     } else if (controller_type == "PID") {
         controller.reset(new PIDController(nh, pnh));

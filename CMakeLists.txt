@@ -15,10 +15,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   drive_ros_msgs
   drive_ros_uavcan
+  kalman
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(CPPAD)
+
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -109,7 +112,7 @@ find_package(CPPAD)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES drive_ros_trajectory_tracking_control
-  CATKIN_DEPENDS roscpp std_msgs drive_ros_msgs drive_ros_uavcan
+  CATKIN_DEPENDS roscpp std_msgs drive_ros_msgs drive_ros_uavcan kalman
   DEPENDS CPPAD
 )
 
@@ -121,7 +124,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  control_systems/src
+#  control_systems/src
   dlib_files
   ${catkin_INCLUDE_DIRS}
   ${CPPAD_INCLUDE_DIRS}
@@ -147,9 +150,9 @@ add_subdirectory(dlib_files/dlib dlib_build)
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node
-    control-systems/src/andromeda.c
+#    control-systems/src/andromeda.c
     src/trajectory_tracking_control_node.cpp
-    src/model_predictive_controller.cpp
+#    src/model_predictive_controller.cpp
     src/model_predictive_controller_dlib.cpp
     src/model_predictive_controller_nonlin.cpp
     src/carrot_controller.cpp

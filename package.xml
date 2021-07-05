@@ -53,14 +53,17 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>drive_ros_msgs</build_depend>
   <build_depend>drive_ros_uavcan</build_depend>
+  <build_depend>kalman</build_depend>
   <build_depend>cppad</build_depend> 
   <build_depend>coinor-libipopt-dev</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>drive_ros_msgs</build_export_depend>
   <build_export_depend>drive_ros_uavcan</build_export_depend>
+  <build_export_depend>kalman</build_export_depend> 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>kalman</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

@@ -1,38 +1,46 @@
 #include <drive_ros_trajectory_tracking_control/model_predictive_controller_nonlin.h>
 
-ModelPredictiveController_nonlin::FG_eval::FG_eval(double cycle_t_, double* weight, double* y, double* phi, double* v){
-    dt = cycle_t_;
+FG_eval::FG_eval(double cycle_t_, double* weights, double* y_ref, double* phi_ref,
+                                                   double* v_ref, double* params){
+    this->dt = cycle_t_;
     for(size_t i=0; i<8; i++){
-        weights[i] = weight[i];
+        this->weights[i] = weights[i];
     }
-    for(size_t i=0; i<N; i++){
-        y_soll[i] = y[i];
-        phi_soll[i] = phi[i];
-        v_soll[i] = v[i];
+    for(size_t i=0; i<horizon_length; i++){
+        this->y_soll[i] = y_ref[i];
+        this->phi_soll[i] = phi_ref[i];
+        this->v_soll[i] = v_ref[i];
     }
+    this->m = params[0];
+    this->J_z = params[1];
+    this->lf = params[2];
+    this->lr = params[3];
+    this->stiffness = params[4];
+    this->T_ax = params[5];
+    this->T_steer = params[6];
 }
 
-void ModelPredictiveController_nonlin::FG_eval::operator()(ADvector& fg, const ADvector& x)
+void FG_eval::operator()(ADvector& fg, const ADvector& x)
 {
     // Cost function
     fg[0]=0;
 
     // y error, phi error and v error
-    for(size_t i=0; i<N; i++){
+    for(size_t i=0; i<horizon_length; i++){
         fg[0] += weights[0] * CppAD::pow(x[y_idx+i] - y_soll[i], 2);
         fg[0] += weights[1] * CppAD::pow(x[phi_idx+i] - phi_soll[i], 2);
         fg[0] += weights[2] * CppAD::pow(x[v_idx+i] - v_soll[i], 2);
     }
 
     // Penalize high accelerations and steering angles
-    for(size_t i=0; i<N-1; i++) {
+    for(size_t i=0; i<horizon_length-1; i++) {
         fg[0] += weights[3] * CppAD::pow(x[a_idx + i], 2);
         fg[0] += weights[4] * CppAD::pow(x[delta_f_ref_idx + i], 2);
         fg[0] += weights[5] * CppAD::pow(x[delta_r_ref_idx + i], 2);
     }
 
     // Penalize difference in steering
-    for(size_t i=0; i<N-2; i++){
+    for(size_t i=0; i<horizon_length-2; i++){
         fg[0] += weights[6] * CppAD::pow(x[delta_f_idx + i + 1] - x[delta_f_idx +i], 2);
         fg[0] += weights[7] * CppAD::pow(x[delta_r_idx + i + 1] - x[delta_f_idx + i], 2);
     }
@@ -48,7 +56,7 @@ void ModelPredictiveController_nonlin::FG_eval::operator()(ADvector& fg, const A
     fg[1 + delta_r_idx] = x[delta_r_idx];
 
     // model equations(single track model) for all points within the horizon
-    for(size_t i=0; i<N-1; i++){
+    for(size_t i=0; i<horizon_length-1; i++){
         // x_k, u_k
         CppAD::AD<double> y_old = x[y_idx + i];
         CppAD::AD<double> phi_old = x[phi_idx + i];
@@ -101,6 +109,7 @@ ModelPredictiveController_nonlin::ModelPredictiveController_nonlin(ros::NodeHand
     pnh_.getParam("penalty_acceleration", weight_acceleration_);
     pnh_.getParam("penalty_front_angle_rate", weight_steeringFront_rate_);
     pnh_.getParam("penalty_rear_angle_rate", weight_steeringRear_rate_);
+    pnh_.getParam("kalman_filter_on", kalman_);
 
     trajectory_sub_ = nh_.subscribe("local_trajectory", 1, &ModelPredictiveController_nonlin::trajectoryCB, this);
 }
@@ -108,6 +117,17 @@ ModelPredictiveController_nonlin::ModelPredictiveController_nonlin(ros::NodeHand
 ModelPredictiveController_nonlin::~ModelPredictiveController_nonlin() {}
 
 void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::TrajectoryConstPtr &msg) {
+    if (kalman_){
+        cur_v_ = estimator_x.v();
+        cur_angle_f_ = estimator_x.delta_f();
+        cur_angle_r_ = estimator_x.delta_r();
+        cur_yaw_ = estimator_x.yaw();
+        cur_acc_ = estimator_x.acc();
+        cur_beta_ = estimator_x.beta();
+    }
+
+    ROS_INFO_STREAM("v: "<< cur_v_ <<"  beta: "<< cur_beta_ << "  yaw: "<< cur_yaw_);
+
     // check received trajectory
     if (msg->points.size() == 0) {
         ROS_ERROR_STREAM("MPC received empty trajectory, skipping!");
@@ -161,16 +181,16 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     // initial states
     // xi[0] = 0.0; // y0=0
     // xi[horizon_length] = 0.0; // phi0=0
-    xi[2 * horizon_length] = cur_v_; // v0
-    xi[3 * horizon_length] = 0; // beta0
-    xi[4 * horizon_length] = cur_yaw_; // yaw0
-    xi[5 * horizon_length] = cur_acc_; // acc0
-    xi[6 * horizon_length] = cur_angle_f_; // front_steering_angle0
-    xi[7 * horizon_length] = cur_angle_r_; // rear_steering_angle0
+    xi[v_idx] = cur_v_; // v0
+    xi[beta_idx] = cur_beta_; // beta0
+    xi[yaw_idx] = cur_yaw_; // yaw0
+    xi[a_idx] = cur_acc_; // acc0
+    xi[delta_f_idx] = cur_angle_f_; // front_steering_angle0
+    xi[delta_r_idx] = cur_angle_r_; // rear_steering_angle0
 
     // prevent division by 0(division by velocity within model equations)
     for(size_t i=1; i<horizon_length;i++) {
-        xi[2 * horizon_length + i] = 0.1; // v
+        xi[v_idx + i] = 0.1; // v
     }
 
     // state constraints
@@ -184,22 +204,22 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     // constraints for acceleration, steer_f and steer_r
     double radian_bound = (M_PI/180)*angle_bound;
     for(i = 0; i < horizon_length; i++){
-        xl[5 * horizon_length + i] = -max_lateral_acc_;
-        xu[5 * horizon_length + i] = max_lateral_acc_;
-        xl[6 * horizon_length + i] = -radian_bound;
-        xu[6 * horizon_length + i] = radian_bound;
-        xl[7 * horizon_length + i] = -radian_bound;
-        xu[7 * horizon_length + i] = radian_bound;
+        xl[a_idx + i] = -max_longitudinal_acc_;
+        xu[a_idx + i] = max_longitudinal_acc_;
+        xl[delta_f_idx + i] = -radian_bound;
+        xu[delta_f_idx + i] = radian_bound;
+        xl[delta_r_idx + i] = -radian_bound;
+        xu[delta_r_idx + i] = radian_bound;
     }
 
     // constraints for acceleration, steer_f and steer_r command
     for(i = 0; i < horizon_length-1; i++){
-        xl[8 * horizon_length + i] = -max_lateral_acc_;
-        xu[8 * horizon_length + i] = max_lateral_acc_;
-        xl[9 * horizon_length - 1 + i] = -radian_bound;
-        xu[9 * horizon_length - 1 + i] = radian_bound;
-        xl[10 * horizon_length - 2 + i] = -radian_bound;
-        xu[10 * horizon_length - 2 + i] = radian_bound;
+        xl[a_ref_idx + i] = -max_longitudinal_acc_;
+        xu[a_ref_idx + i] = max_longitudinal_acc_;
+        xl[delta_f_ref_idx + i] = -radian_bound;
+        xu[delta_f_ref_idx + i] = radian_bound;
+        xl[delta_r_ref_idx + i] = -radian_bound;
+        xu[delta_r_ref_idx + i] = radian_bound;
     }
 
     // lower and upper limits for g (set to 0 for model equations)
@@ -212,25 +232,26 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     // initial state constraints
     //gl[0] = 0;// y0=0
     //gl[1] = 0;// phi0=0
-    gl[2 * horizon_length] = cur_v_;// v0
-    gl[3 * horizon_length] = 0;// beta0
-    gl[4 * horizon_length] = cur_yaw_;// yaw0
-    gl[5 * horizon_length] = cur_acc_;// acc0
-    gl[6 * horizon_length] = cur_angle_f_;// front_steering_angle0
-    gl[7 * horizon_length] = cur_angle_r_;// rear_steering_angle0
+    gl[v_idx] = cur_v_;// v0
+    gl[beta_idx] = cur_beta_;// beta0
+    gl[yaw_idx] = cur_yaw_;// yaw0
+    gl[a_idx] = cur_acc_;// acc0
+    gl[delta_f_idx] = cur_angle_f_;// front_steering_angle0
+    gl[delta_r_idx] = cur_angle_r_;// rear_steering_angle0
     //gu[0] = 0;// y0=0
     //gu[1] = 0;// phi0=0
-    gu[2 * horizon_length] = cur_v_;// v0
-    gu[3 * horizon_length] = 0;// beta0
-    gu[4 * horizon_length] = cur_yaw_;// yaw0
-    gu[5 * horizon_length] = cur_acc_;// acc0
-    gu[6 * horizon_length] = cur_angle_f_;// front_steering_angle0
-    gu[7 * horizon_length] = cur_angle_r_;// rear_steering_angle0
+    gu[v_idx] = cur_v_;// v0
+    gu[beta_idx] = cur_beta_;// beta0
+    gu[yaw_idx] = cur_yaw_;// yaw0
+    gu[a_idx] = cur_acc_;// acc0
+    gu[delta_f_idx] = cur_angle_f_;// front_steering_angle0
+    gu[delta_r_idx] = cur_angle_r_;// rear_steering_angle0
 
     // initialize class for cost function and constraints with weights and reference values
     double weights[] = {weight_y_, weight_phi_, weight_v_, weight_acceleration_, weight_steeringFront_,
                         weight_steeringRear_, weight_steeringFront_rate_, weight_steeringRear_rate_};
-    FG_eval fg_eval(cycle_t_, weights, y_soll, phi_soll, v_soll);
+    double params[]={m, J_z, lf, lr, stiffness, T_ax, T_steer};
+    FG_eval fg_eval(cycle_t_, weights, y_soll, phi_soll, v_soll, params);
 
     // options for optimization
     std::string options;
@@ -238,7 +259,6 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     options += "Integer print_level  0\n";
     options += "Sparse  true        forward\n";
     options += "Sparse true         reverse\n";
-//    options += options += "Numeric max_cpu_time          0.2\n";
 
     // place to return solution
     CppAD::ipopt::solve_result<Dvector> solution;
@@ -248,12 +268,12 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
 
     // set control commands
     double control[3];
-    control[0] = solution.x[8 * horizon_length];
-    control[1] = solution.x[9 * horizon_length - 1];
-    control[2] = solution.x[10 * horizon_length - 2];
+    control[0] = solution.x[a_ref_idx];
+    control[1] = solution.x[delta_f_ref_idx];
+    control[2] = solution.x[delta_r_ref_idx];
     control[0] = cur_v_ + control[0] * cycle_t_;
     if(std::isnan(control[1]) || std::isnan(control[2] || std::isnan(control[0])) ){
-        ROS_ERROR_STREAM("invalid vals: " << control[1] <<" " <<control[2]);
+        ROS_ERROR_STREAM("invalid vals: " << control[1] <<" " <<control[2]<<" "<<control[0]);
     }
 
     //Set values
@@ -267,5 +287,10 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     ROS_INFO_NAMED(stream_name_, "Steering rear = %.5f", drive_command_msg.phi_r * 180.f / M_PI);
     ROS_INFO_NAMED(stream_name_, "Velocity_command = %.5f", drive_command_msg.lin_vel);
 
+    // kalman update step
+    estimator_u.acc_ref() = (control[0] - cur_v_) / cycle_t_;
+    estimator_u.delta_f_ref() = control[1];
+    estimator_u.delta_r_ref() = control[2];
+    estimator_x = estimator_ukf.predict(estimator_sys, estimator_u);
     return;
 }

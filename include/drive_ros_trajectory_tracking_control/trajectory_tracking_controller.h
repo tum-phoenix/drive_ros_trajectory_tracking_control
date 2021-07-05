@@ -7,11 +7,22 @@
 #include <drive_ros_uavcan/phoenix_msgs__NucDriveCommand.h>
 #include <drive_ros_uavcan/phoenix_msgs__DriveState.h>
 #include <drive_ros_uavcan/phoenix_msgs__ImuData.h>
+#include <drive_ros_trajectory_tracking_control/estimator_systemmodel.h>
+#include <drive_ros_trajectory_tracking_control/estimator_measurementmodels.h>
+#include <kalman/UnscentedKalmanFilter.hpp>
 
 class TrajectoryTrackingController {
 public:
     TrajectoryTrackingController(ros::NodeHandle nh, ros::NodeHandle pnh);
     ~TrajectoryTrackingController();
+    // typedefs for Kalman-Filter
+    typedef Models::State<double> State;
+    typedef Models::Control<double> Control;
+    typedef Models::SystemModel<double> SystemModel;
+    typedef Models::VehicleStateMeasurement<double> VehicleState;
+    typedef Models::ImuStateMeasurement<double> ImuMeasurement;
+    typedef Models::VehicleStateMeasurementModel<double> StateModel;
+    typedef Models::ImuStateMeasurementModel<double> ImuModel;
 protected:
     // actually just temp until we get a proper trajectory generator
     void processMetaInput();
@@ -35,15 +46,34 @@ protected:
     // publishers
     ros::Publisher nuc_command_pub_;
 
+    // params for system model
+    const double l = 0.2405;// wheelbase
+    const double stiffness = 20.0;// cornering stiffness
+    const double lf = 0.5*l;// distance CG - front tire
+    const double lr = 0.5*l;// distance CG -  rear tire
+    const double m = 10;// mass
+    const double J_z = 0.1;// moment of inertia
+    const double T_ax = 0.5;// acceleration time constant
+    const double T_steer = 0.1;// steering time constant
+
     // store current driving state
     float cur_v_ = 0;
     float cur_angle_f_ = 0;
     float cur_angle_r_ = 0;
     float cur_yaw_ = 0;
     float cur_acc_ = 0;
+    float cur_beta_ = 0;
+
+    // kalman estimator
+    State estimator_x;
+    Control estimator_u;
+    SystemModel estimator_sys;
+    StateModel estimator_state_meas_model;
+    ImuModel estimator_imu_meas_model;
+    Kalman::UnscentedKalmanFilter<State> estimator_ukf;
 
     double link_length_;
-    double max_lateral_acc_;
+    double max_longitudinal_acc_;
     double u_1_ub_;
     double u_1_lb_;
     double u_2_ub_;
