@@ -6,12 +6,12 @@ ModelPredictiveController_dlib::ModelPredictiveController_dlib(ros::NodeHandle n
         TrajectoryTrackingController(nh, pnh)
 {
 
-    pnh_.getParam("penalty_y", weight_y_);
-    pnh_.getParam("penalty_phi", weight_phi_);
-    pnh_.getParam("penalty_v", weight_v_);
-    pnh_.getParam("penalty_front_angle", weight_steeringFront_);
-    pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
-    pnh_.getParam("penalty_acc", weight_acc_);
+    pnh_.getParam("mpc_dlib/penalty_y", weight_y_);
+    pnh_.getParam("mpc_dlib/penalty_phi", weight_phi_);
+    pnh_.getParam("mpc_dlib/penalty_v", weight_v_);
+    pnh_.getParam("mpc_dlib/penalty_front_angle", weight_steeringFront_);
+    pnh_.getParam("mpc_dlib/penalty_rear_angle", weight_steeringRear_);
+    pnh_.getParam("mpc_dlib/penalty_acc", weight_acc_);
     //von config einlesen, um live einzustellen
 
 
@@ -79,8 +79,8 @@ void ModelPredictiveController_dlib::trajectoryCB(const drive_ros_msgs::Trajecto
     //declare input bounds
     double radian_bound = (M_PI/180)*angle_bound;
     dlib::matrix<double,CONTROLS_,1> lower, upper;
-    lower= -radian_bound, -radian_bound, -2;
-    upper= radian_bound, radian_bound, 2;
+    lower= -radian_bound, -radian_bound, -5;
+    upper= radian_bound, radian_bound, 5;
 
     dlib::matrix<double,STATES_,STATES_> A;
     A = 1, cycle_t_*v, 0, 0, 1, 0, 0, 0, 1;

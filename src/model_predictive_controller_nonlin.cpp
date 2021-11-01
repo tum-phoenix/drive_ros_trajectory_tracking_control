@@ -87,7 +87,7 @@ void FG_eval::operator()(ADvector& fg, const ADvector& x)
         fg[2 + yaw_idx + i] = - x[yaw_idx + i + 1] + yaw_old + (1 / J_z * (lf * F_lon * CppAD::sin(delta_f_old) - lr
                 * F_lon * CppAD::sin(delta_r_old) + lf * F_lat_f * CppAD::cos(delta_f_old) - lr * F_lat_r
                 * CppAD::cos(delta_r_old))) * dt;
-        fg[2 + a_idx + i] = - x[a_idx + i +1] + a_old + (1 / T_ax * (a_ref_old - a_old)) * dt;
+        fg[2 + a_idx + i] = - x[a_idx + i +1] + (1 / T_ax * (a_ref_old - a_old)) * dt;
         fg[2 + delta_f_idx + i] = - x[delta_f_idx + i +1] + delta_f_old + (1 / T_steer *
                 (delta_f_ref_old - delta_f_old)) * dt;
         fg[2 + delta_r_idx + i] = - x[delta_r_idx + i +1] + delta_r_old + (1 / T_steer *
@@ -101,15 +101,15 @@ ModelPredictiveController_nonlin::ModelPredictiveController_nonlin(ros::NodeHand
         TrajectoryTrackingController(nh, pnh)
 {
     //von config einlesen, um live einzustellen
-    pnh_.getParam("penalty_y", weight_y_);
-    pnh_.getParam("penalty_phi", weight_phi_);
-    pnh_.getParam("penalty_v", weight_v_);
-    pnh_.getParam("penalty_front_angle", weight_steeringFront_);
-    pnh_.getParam("penalty_rear_angle", weight_steeringRear_);
-    pnh_.getParam("penalty_acceleration", weight_acceleration_);
-    pnh_.getParam("penalty_front_angle_rate", weight_steeringFront_rate_);
-    pnh_.getParam("penalty_rear_angle_rate", weight_steeringRear_rate_);
-    pnh_.getParam("kalman_filter_on", kalman_);
+    pnh_.getParam("mpc_ipopt/penalty_y", weight_y_);
+    pnh_.getParam("mpc_ipopt/penalty_phi", weight_phi_);
+    pnh_.getParam("mpc_ipopt/penalty_v", weight_v_);
+    pnh_.getParam("mpc_ipopt/penalty_front_angle", weight_steeringFront_);
+    pnh_.getParam("mpc_ipopt/penalty_rear_angle", weight_steeringRear_);
+    pnh_.getParam("mpc_ipopt/penalty_acceleration", weight_acceleration_);
+    pnh_.getParam("mpc_ipopt/penalty_front_angle_rate", weight_steeringFront_rate_);
+    pnh_.getParam("mpc_ipopt/penalty_rear_angle_rate", weight_steeringRear_rate_);
+    pnh_.getParam("kalman/kalman_filter_on", kalman_);
 
     trajectory_sub_ = nh_.subscribe("local_trajectory", 1, &ModelPredictiveController_nonlin::trajectoryCB, this);
 }
@@ -126,7 +126,7 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
         cur_beta_ = estimator_x.beta();
     }
 
-    ROS_INFO_STREAM("v: "<< cur_v_ <<"  beta: "<< cur_beta_ << "  yaw: "<< cur_yaw_);
+//    ROS_INFO_STREAM("front: "<< cur_angle_f_ * 180.f/M_PI<<"  back: "<< cur_angle_r_ * 180.f/M_PI<<"  v: "<< cur_v_);
 
     // check received trajectory
     if (msg->points.size() == 0) {
@@ -283,8 +283,8 @@ void ModelPredictiveController_nonlin::trajectoryCB(const drive_ros_msgs::Trajec
     drive_command_msg.phi_r = control[2];
     drive_command_msg.lin_vel = control[0];
     nuc_command_pub_.publish(drive_command_msg);
-    ROS_INFO_NAMED(stream_name_, "Steering front = %.5f", drive_command_msg.phi_f * 180.f / M_PI);
-    ROS_INFO_NAMED(stream_name_, "Steering rear = %.5f", drive_command_msg.phi_r * 180.f / M_PI);
+//    ROS_INFO("Com:front=%.3f, back=%.3f, speed=%.3f ", drive_command_msg.phi_f * 180.f / M_PI, drive_command_msg.phi_r * 180.f / M_PI, drive_command_msg.lin_vel);
+//    ROS_INFO_NAMED(stream_name_, "Steering rear = %.5f", drive_command_msg.phi_r * 180.f / M_PI);
     ROS_INFO_NAMED(stream_name_, "Velocity_command = %.5f", drive_command_msg.lin_vel);
 
     // kalman update step

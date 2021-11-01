@@ -12,7 +12,7 @@
 #include <cppad/ipopt/solve.hpp>
 
 // horizon_length and index variables for states and controls
-const size_t horizon_length = 4;
+const size_t horizon_length = 10;
 const size_t y_idx = 0;
 const size_t phi_idx = horizon_length;
 const size_t v_idx = phi_idx + horizon_length;

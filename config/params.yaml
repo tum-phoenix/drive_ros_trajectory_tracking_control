@@ -1,0 +1,57 @@
+controller_type: MPC_ACADOS
+kalman:
+  kalman_filter_on: false
+  filter_init_var_v: 0.01
+  filter_init_var_beta: 0.01
+  filter_init_var_yaw: 0.01
+  filter_init_var_acc: 0.01
+  filter_init_var_delta_f: 0.01
+  filter_init_var_delta_r: 0.01
+  sys_var_v: 0.2
+  sys_var_beta: 0.3
+  sys_var_yaw: 0.2
+  sys_var_acc: 0.05
+  sys_var_delta_f: 0.2
+  sys_var_delta_r: 0.2
+  meas_v: 0.1
+  meas_delta_f: 0.01
+  meas_delta_r: 0.01
+  meas_acc: 0.3
+  meas_yaw: 0.1
+bounds:
+  max_longitudinal_acc: 5
+  steer_angle_rate: 5
+  steer_angle: 22
+pid:
+  k_p_steer: 0.15
+  k_i_steer: 0.0
+  k_d_steer: 0.05
+  k_p_vel: 5.0
+  k_d_vel: 0.0
+  k_i_vel: 0.0
+mpc_dlib:
+  penalty_y: 1.9
+  penalty_phi: 2.5
+  penalty_v: 1.0
+  penalty_front_angle: 1.5
+  penalty_rear_angle: 1.5
+  penalty_acc: 0.1
+mpc_ipopt:
+  penalty_y: 1.9
+  penalty_phi: 2.5
+  penalty_v: 1.0
+  penalty_front_angle: 1.5
+  penalty_rear_angle: 1.5
+  penalty_acc: 0.1
+  penalty_front_angle_rate: 2.5
+  penalty_rear_angle_rate: 2.5
+mpc_acados:
+  horizon_length: 9
+  penalty_y: 2.5
+  penalty_phi: 2.5
+  penalty_v: 1.0
+  penalty_front_angle: 3.0
+  penalty_rear_angle: 3.0
+  penalty_acc: 0.1
+  penalty_front_angle_rate: 0.15
+  penalty_rear_angle_rate: 0.15

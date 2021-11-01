@@ -8,9 +8,12 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     drive_state_sub_ = nh_.subscribe("drive_state_in", 5, &TrajectoryTrackingController::driveStateCB, this);
     imu_state_sub_ = nh_.subscribe("imu_state_in", 5, &TrajectoryTrackingController::imuStateCB, this);
     nuc_command_pub_ = nh_.advertise<drive_ros_uavcan::phoenix_msgs__NucDriveCommand>("drive_command_out", 5);
+    planned_path_pub = nh.advertise<nav_msgs::Path>("planned_path", 1);
 
     pnh_.getParam("link_length",link_length_);
-    pnh_.getParam("max_longitudinal_acc", max_longitudinal_acc_);
+    pnh_.getParam("bounds/max_longitudinal_acc", max_longitudinal_acc_);
+    pnh_.getParam("bounds/steer_angle_rate", angle_rate_bound);
+    pnh_.getParam("bounds/steer_angle", angle_bound);
 
     pnh_.getParam("front_angle_rate_Bound", u_1_ub_);
     u_1_lb_ = -u_1_ub_;
@@ -20,7 +23,6 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     pnh_.getParam("node_max_speed", nodes_v_max_);
     pnh_.getParam("node_min_speed", nodes_v_min_);
     nh_.getParam("cycletime", cycle_t_);
-    pnh_.getParam("angle_bound", angle_bound);
 
     //kalman
     double params[]={m, J_z, lf, lr, stiffness, T_ax, T_steer};
@@ -33,12 +35,12 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     Kalman::Covariance<State> stateCov;
     stateCov.setZero();
 
-    if(!(pnh_.getParam("kalman_cov/filter_init_var_v", stateCov(State::V, State::V)) &&
-         pnh_.getParam("kalman_cov/filter_init_var_beta", stateCov(State::BETA, State::BETA)) &&
-         pnh_.getParam("kalman_cov/filter_init_var_yaw", stateCov(State::YAW, State::YAW)) &&
-         pnh_.getParam("kalman_cov/filter_init_var_acc", stateCov(State::ACC, State::ACC)) &&
-         pnh_.getParam("kalman_cov/filter_init_var_delta_f", stateCov(State::DELTA_F, State::DELTA_F)) &&
-         pnh_.getParam("kalman_cov/filter_init_var_delta_r", stateCov(State::DELTA_R, State::DELTA_R))))
+    if(!(pnh_.getParam("kalman/filter_init_var_v", stateCov(State::V, State::V)) &&
+         pnh_.getParam("kalman/filter_init_var_beta", stateCov(State::BETA, State::BETA)) &&
+         pnh_.getParam("kalman/filter_init_var_yaw", stateCov(State::YAW, State::YAW)) &&
+         pnh_.getParam("kalman/filter_init_var_acc", stateCov(State::ACC, State::ACC)) &&
+         pnh_.getParam("kalman/filter_init_var_delta_f", stateCov(State::DELTA_F, State::DELTA_F)) &&
+         pnh_.getParam("kalman/filter_init_var_delta_r", stateCov(State::DELTA_R, State::DELTA_R))))
     {
         ROS_ERROR("Error loading Kalman initial state covariance!");
     }
@@ -49,12 +51,12 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     Kalman::Covariance<State> cov;
     cov.setZero();
 
-    if(!(pnh_.getParam("kalman_cov/sys_var_v", cov(State::V, State::V)) &&
-         pnh_.getParam("kalman_cov/sys_var_beta", cov(State::BETA, State::BETA)) &&
-         pnh_.getParam("kalman_cov/sys_var_yaw", cov(State::YAW, State::YAW)) &&
-         pnh_.getParam("kalman_cov/sys_var_acc", cov(State::ACC, State::ACC)) &&
-         pnh_.getParam("kalman_cov/sys_var_delta_f", cov(State::DELTA_F, State::DELTA_F)) &&
-         pnh_.getParam("kalman_cov/sys_var_delta_r", cov(State::DELTA_R, State::DELTA_R))))
+    if(!(pnh_.getParam("kalman/sys_var_v", cov(State::V, State::V)) &&
+         pnh_.getParam("kalman/sys_var_beta", cov(State::BETA, State::BETA)) &&
+         pnh_.getParam("kalman/sys_var_yaw", cov(State::YAW, State::YAW)) &&
+         pnh_.getParam("kalman/sys_var_acc", cov(State::ACC, State::ACC)) &&
+         pnh_.getParam("kalman/sys_var_delta_f", cov(State::DELTA_F, State::DELTA_F)) &&
+         pnh_.getParam("kalman/sys_var_delta_r", cov(State::DELTA_R, State::DELTA_R))))
     {
         ROS_ERROR("Error loading Kalman process covariance!");
     }
@@ -63,9 +65,9 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
     // Set measurement covariances
     Kalman::Covariance<VehicleState> cov_vehicle_meas;
     cov_vehicle_meas.setZero();
-    if(!(pnh_.getParam("kalman_cov/meas_v", cov_vehicle_meas(VehicleState::V_MEAS, VehicleState::V_MEAS)) &&
-         pnh_.getParam("kalman_cov/meas_delta_f", cov_vehicle_meas(VehicleState::DELTA_F_MEAS, VehicleState::DELTA_F_MEAS)) &&
-         pnh_.getParam("kalman_cov/meas_delta_r", cov_vehicle_meas(VehicleState::DELTA_R_MEAS, VehicleState::DELTA_R_MEAS))))
+    if(!(pnh_.getParam("kalman/meas_v", cov_vehicle_meas(VehicleState::V_MEAS, VehicleState::V_MEAS)) &&
+         pnh_.getParam("kalman/meas_delta_f", cov_vehicle_meas(VehicleState::DELTA_F_MEAS, VehicleState::DELTA_F_MEAS)) &&
+         pnh_.getParam("kalman/meas_delta_r", cov_vehicle_meas(VehicleState::DELTA_R_MEAS, VehicleState::DELTA_R_MEAS))))
     {
         ROS_ERROR("Error loading Kalman vehicle measurement covariance!");
     }
@@ -73,8 +75,8 @@ TrajectoryTrackingController::TrajectoryTrackingController(ros::NodeHandle nh, r
 
     Kalman::Covariance<ImuMeasurement> cov_imu_meas;
     cov_imu_meas.setZero();
-    if(!(pnh_.getParam("kalman_cov/meas_acc", cov_imu_meas(ImuMeasurement::ACC_MEAS, ImuMeasurement::ACC_MEAS)) &&
-         pnh_.getParam("kalman_cov/meas_yaw", cov_imu_meas(ImuMeasurement::YAW_MEAS, ImuMeasurement::YAW_MEAS))))
+    if(!(pnh_.getParam("kalman/meas_acc", cov_imu_meas(ImuMeasurement::ACC_MEAS, ImuMeasurement::ACC_MEAS)) &&
+         pnh_.getParam("kalman/meas_yaw", cov_imu_meas(ImuMeasurement::YAW_MEAS, ImuMeasurement::YAW_MEAS))))
     {
         ROS_ERROR("Error loading Kalman imu measurement covariance!");
     }
