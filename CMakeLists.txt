@@ -21,7 +21,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(CPPAD)
 
-
+file(GLOB SINGLE_TRACK_MODEL_SRC
+    include/drive_ros_trajectory_tracking_control/model/single_track_model_impl_ode_fun.cpp
+    include/drive_ros_trajectory_tracking_control/model/single_track_model_impl_ode_fun_jac_x_xdot.cpp
+    include/drive_ros_trajectory_tracking_control/model/single_track_model_impl_ode_jac_x_xdot_u.cpp
+    include/drive_ros_trajectory_tracking_control/model/single_track_model_impl_ode_fun_jac_x_xdot_u.cpp
+)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -129,9 +134,16 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${CPPAD_INCLUDE_DIRS}
   IPOPT/compiled/include
+  acados/include
+  acados/include/blasfeo/include
+  acados/include/hpipm/include
+#  acados/include/qpOASES_e
 )
 
 link_directories(IPOPT/compiled/lib)
+
+link_directories(acados/lib)
+
 
 
 add_subdirectory(dlib_files/dlib dlib_build)
@@ -151,13 +163,14 @@ add_subdirectory(dlib_files/dlib dlib_build)
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node
 #    control-systems/src/andromeda.c
-    src/trajectory_tracking_control_node.cpp
+    src/trajectory_tracking_control_node.cpp ${SINGLE_TRACK_MODEL_SRC}
 #    src/model_predictive_controller.cpp
     src/model_predictive_controller_dlib.cpp
     src/model_predictive_controller_nonlin.cpp
     src/carrot_controller.cpp
     src/trajectory_tracking_controller.cpp
-    src/pid_controller.cpp)
+    src/pid_controller.cpp
+    src/model_predictive_controller_acados.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,6 +187,10 @@ target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
    dlib::dlib
    ipopt
+   acados
+   blasfeo
+   hpipm
+#   qpOASES_e
 #   ${CMAKE_CURRENT_SOURCE_DIR}/control-systems/src/andromeda.so
 )
 

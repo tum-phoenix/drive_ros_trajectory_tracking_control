@@ -10,6 +10,7 @@
 #include <drive_ros_trajectory_tracking_control/estimator_systemmodel.h>
 #include <drive_ros_trajectory_tracking_control/estimator_measurementmodels.h>
 #include <kalman/UnscentedKalmanFilter.hpp>
+#include <nav_msgs/Path.h>
 
 class TrajectoryTrackingController {
 public:
@@ -45,16 +46,17 @@ protected:
 
     // publishers
     ros::Publisher nuc_command_pub_;
+    ros::Publisher planned_path_pub;
 
     // params for system model
-    const double l = 0.2405;// wheelbase
-    const double stiffness = 20.0;// cornering stiffness
-    const double lf = 0.5*l;// distance CG - front tire
-    const double lr = 0.5*l;// distance CG -  rear tire
-    const double m = 10;// mass
-    const double J_z = 0.1;// moment of inertia
-    const double T_ax = 0.5;// acceleration time constant
-    const double T_steer = 0.1;// steering time constant
+    const double l = 0.3302;// wheelbase
+    const double stiffness = 5.0;// cornering stiffness
+    const double lf = 0.15875;// distance CG - front tire
+    const double lr = 0.17145;// distance CG -  rear tire
+    const double m = 3.47;// mass
+    const double J_z = 0.04712;// moment of inertia
+    const double T_ax = 0.06;// acceleration time constant
+    const double T_steer = 0.05;// steering time constant
 
     // store current driving state
     float cur_v_ = 0;
@@ -82,6 +84,7 @@ protected:
     double nodes_v_min_;
     double cycle_t_;
     double angle_bound;
+    double angle_rate_bound;
     // store current meta inputs
     // todo: handle this stuff in trajectory generator, this should not be needed in the controller
     float v_max_ = 0;

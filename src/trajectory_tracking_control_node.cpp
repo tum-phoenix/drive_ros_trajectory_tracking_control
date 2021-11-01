@@ -3,6 +3,7 @@
 #include <drive_ros_trajectory_tracking_control/pid_controller.h>
 #include <drive_ros_trajectory_tracking_control/model_predictive_controller_dlib.h>
 #include <drive_ros_trajectory_tracking_control/model_predictive_controller_nonlin.h>
+#include <drive_ros_trajectory_tracking_control/model_predictive_controller_acados.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "trajectory_tracking_control_node");
@@ -23,6 +24,8 @@ int main(int argc, char **argv) {
         controller.reset(new ModelPredictiveController_dlib(nh, pnh));
     } else if (controller_type == "MPC_NONLIN") {
         controller.reset(new ModelPredictiveController_nonlin(nh, pnh));
+    } else if (controller_type =="MPC_ACADOS"){
+        controller.reset(new ModelPredictiveController_acados(nh, pnh));
     } else {
         ROS_ERROR_STREAM("Invalid controller type provided: " << controller_type << ", shutting down");
         return 0;
